@@ -1,0 +1,85 @@
+wf := import("@platforma-sdk/workflow-tengo:workflow")
+exec := import("@platforma-sdk/workflow-tengo:exec")
+assets:= import("@platforma-sdk/workflow-tengo:assets")
+xsv := import("@platforma-sdk/workflow-tengo:pframes.xsv")
+pframes := import("@platforma-sdk/workflow-tengo:pframes")
+
+pfResultsConv := import(":pf-results-conv")
+pfBoxplotConv := import(":pf-boxplot-conv")
+pfStackedBarConv := import(":pf-stacked-bar-conv")
+
+wf.prepare(func(args){
+	
+	metaRefs := {}
+
+	i := 0
+	for metaRef in args.covariateRefs {
+		metaRefs["metaRef" + i ] = wf.resolve(metaRef, { errIfMissing: true })
+		i = i + 1
+	}
+
+	return {
+		resolvedInput: wf.resolve(args.countsRef, { errIfMissing: true }),
+		resolvedClusterAnnotation: wf.resolve(args.clusterAnnotationRef, { errIfMissing: true }),
+		resolvedContrastFactor: wf.resolve(args.contrastFactor),
+		metaRefs: metaRefs 
+	}
+})
+
+wf.body(func(args) {
+
+	blockId := wf.blockId().getDataAsJson()
+	rawCounts := args.resolvedInput
+	inputSpec := rawCounts.spec
+	contrastFactor := args.resolvedContrastFactor
+	baseline := args.baseline
+
+	covariates := []
+	for _, v in args.metaRefs {
+		covariates = append(covariates, v)
+	}
+
+	clusterAnnotation := args.resolvedClusterAnnotation
+	clusterColumn := clusterAnnotation.spec.annotations["pl7.app/label"]
+	
+	csvClusters := xsv.exportFrame([clusterAnnotation], "csv", {})
+
+	csvCovariates := xsv.exportFrame(covariates, "csv", {})
+
+	compositionalAnalysis := exec.builder().
+		software(assets.importSoftware("@platforma-open/milaboratories.compositional-analysis.software:run-compositional-analysis")).
+		addFile("metadata.csv", csvCovariates).
+		addFile("clusters.csv", csvClusters).
+		arg("--metadata_csv").arg("metadata.csv").
+		arg("--cell_annotation_csv").arg("clusters.csv").
+		arg("--cell_type_column").arg(string(clusterColumn)).
+		arg("--contrast_column").arg(string(contrastFactor)).
+		arg("--baseline_level").arg(string(baseline)).
+		arg("--output_dir").arg(".").
+		saveFile("sccoda_results_summary.csv").
+		saveFile("relative_counts_for_barplot.csv").
+		saveFile("counts_for_boxplot.csv").
+		printErrStreamToStdout().
+		saveStdoutContent().
+		cache(24 * 60 * 60 * 1000).
+		run()
+
+	resultsImportParams := pfResultsConv.getColumns(blockId)
+	resultsPf := xsv.importFile(compositionalAnalysis.getFile("sccoda_results_summary.csv"), "csv", resultsImportParams)
+
+	boxplotImportParams := pfBoxplotConv.getColumns(blockId, inputSpec)
+	boxplotPf := xsv.importFile(compositionalAnalysis.getFile("counts_for_boxplot.csv"), "csv", boxplotImportParams)
+
+	stackedBarImportParams := pfStackedBarConv.getColumns(blockId, inputSpec)
+	stackedBarPf := xsv.importFile(compositionalAnalysis.getFile("relative_counts_for_barplot.csv"), "csv", stackedBarImportParams)
+
+	return {
+		outputs: {
+			resultsPf: pframes.exportFrame(resultsPf),
+			boxplotPf: pframes.exportFrame(boxplotPf),
+			stackedBarPf: pframes.exportFrame(stackedBarPf)
+		},
+		exports: {}
+	}
+})
+

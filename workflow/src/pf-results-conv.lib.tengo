@@ -1,0 +1,72 @@
+ll := import("@platforma-sdk/workflow-tengo:ll")
+
+getColumns := func(blockId) {
+  return {
+    "axes": [
+		{
+        "column": "group",
+        "id": "group",
+        "allowNA": false,
+        "spec": {
+          "name": "pl7.app/rna-seq/contrastGroup",
+          "type": "String",
+          "domain": {
+            "pl7.app/blockId": blockId
+          },
+          "annotations": {
+            "pl7.app/label": "Contrast group"
+          }
+        }
+      },
+		{
+        "column": "cell_type",
+        "id": "cellgroup",
+        "allowNA": false,
+        "spec": {
+          "name": "pl7.app/rna-seq/cellGroup",
+          "type": "String",
+          "domain": {
+            "pl7.app/blockId": blockId
+          },
+          "annotations": {
+            "pl7.app/label": "Cell cluster"
+          }
+        }
+      }
+      ],
+    "columns": [
+			{
+				"column": "log2_fold_change",
+				"id": "log2foldchange",
+				"allowNA": true,
+				"spec": {
+					"name": "pl7.app/rna-seq/log2foldchange",
+					"valueType": "Double",
+					"annotations": {
+						"pl7.app/label": "Log2FC",
+						"pl7.app/table/orderPriority": "60"
+					}
+				}
+			},
+      {
+				"column": "q_value",
+				"id": "qvalue",
+				"allowNA": true,
+				"spec": {
+					"name": "pl7.app/rna-seq/qvalue",
+					"valueType": "Double",
+					"annotations": {
+						"pl7.app/label": "q-value",
+						"pl7.app/table/orderPriority": "20"
+					}
+				}
+			}
+      ],
+    "storageFormat": "Binary",
+    "partitionKeyLength": 1
+  }
+}
+
+export ll.toStrict({
+	getColumns: getColumns
+})
