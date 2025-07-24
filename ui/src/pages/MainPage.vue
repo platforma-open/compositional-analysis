@@ -52,7 +52,7 @@ const baselineOptions = computed(() => {
 
 <template>
   <PlBlockPage>
-    <template #title>Cluster Markers</template>
+    <template #title>Compositional Analysis</template>
     <template #append>
       <!-- PlAgDataTableToolsPanel controls showing  Export column and filter-->
       <PlBtnGhost @click.stop="() => data.settingsOpen = true">

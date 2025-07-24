@@ -14,7 +14,7 @@ getColumns := func(blockId) {
             "pl7.app/blockId": blockId
           },
           "annotations": {
-            "pl7.app/label": "Contrast group"
+            "pl7.app/label": "Contrast"
           }
         }
       },
@@ -29,7 +29,7 @@ getColumns := func(blockId) {
             "pl7.app/blockId": blockId
           },
           "annotations": {
-            "pl7.app/label": "Cell cluster"
+            "pl7.app/label": "Cell group"
           }
         }
       }

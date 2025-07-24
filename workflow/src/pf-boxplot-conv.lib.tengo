@@ -18,7 +18,7 @@ getColumns := func(blockId, inputSpec) {
             "pl7.app/blockId": blockId
           },
           "annotations": {
-            "pl7.app/label": "Cell cluster"
+            "pl7.app/label": "Cell group"
           }
         }
       }

@@ -1,17 +1,17 @@
 import type { GraphMakerState } from '@milaboratories/graph-maker';
 import type {
   InferOutputsType,
+  PColumnIdAndSpec,
   PFrameHandle,
   PlDataTableStateV2,
   PlRef } from '@platforma-sdk/model';
 import {
   BlockModel,
-  createPFrameForGraphs,
   createPlDataTableV2,
   createPlDataTableStateV2,
   createPlDataTableSheet,
   getUniquePartitionKeys,
-  // isPColumn,
+  isPColumn,
   isPColumnSpec,
 } from '@platforma-sdk/model';
 
@@ -39,12 +39,12 @@ export const model = BlockModel.create()
   .withUiState<UiState>({
 
     graphStateStackedBar: {
-      title: 'UMAP',
-      template: 'dots',
+      title: 'Cell Group Composition',
+      template: 'stackedBar',
     },
     graphStateBarplot: {
-      title: 'tSNE',
-      template: 'dots',
+      title: 'Cell Group Abundance',
+      template: 'bar',
     },
     tableState: createPlDataTableStateV2(),
   })
@@ -100,21 +100,105 @@ export const model = BlockModel.create()
     if (pCols === undefined) {
       return undefined;
     }
-    return createPFrameForGraphs(ctx, pCols);
+
+    // Get all metadata columns that are compatible with the Sample axis
+    const metadataCols = ctx.resultPool
+      .getData()
+      .entries.map((c) => c.obj)
+      .filter(isPColumn)
+      .filter((col) =>
+        col.spec.name === 'pl7.app/metadata'
+        && col.spec.axesSpec.some((axis) => axis.name === 'pl7.app/sampleId'),
+      );
+
+    // Use createPFrame directly to limit to only these specific columns
+    // (instead of createPFrameForGraphs which adds all compatible workspace columns)
+    const allCols = [...pCols, ...metadataCols];
+    return ctx.createPFrame(allCols);
   })
 
   .output('stackedBarPf', (ctx): PFrameHandle | undefined => {
+    const pCols = ctx.outputs?.resolve('stackedBarPf')?.getPColumns();
+    if (pCols === undefined) {
+      return undefined;
+    }
+
+    // Get all metadata columns that are compatible with the Sample axis
+    const metadataCols = ctx.resultPool
+      .getData()
+      .entries.map((c) => c.obj)
+      .filter(isPColumn)
+      .filter((col) =>
+        col.spec.name === 'pl7.app/metadata'
+        && col.spec.axesSpec.some((axis) => axis.name === 'pl7.app/sampleId'),
+      );
+
+    // Use createPFrame directly to limit to only these specific columns
+    // (instead of createPFrameForGraphs which adds all compatible workspace columns)
+    const allCols = [...pCols, ...metadataCols];
+    return ctx.createPFrame(allCols);
+  })
+
+  // Returns PColumn specs for barplot defaults
+  .output('barplotPCols', (ctx) => {
     const pCols = ctx.outputs?.resolve('boxplotPf')?.getPColumns();
     if (pCols === undefined) {
       return undefined;
     }
-    return createPFrameForGraphs(ctx, pCols);
+
+    // Get all metadata columns that are compatible with the Sample axis
+    const metadataCols = ctx.resultPool
+      .getData()
+      .entries.map((c) => c.obj)
+      .filter(isPColumn)
+      .filter((col) =>
+        col.spec.name === 'pl7.app/metadata'
+        && col.spec.axesSpec.some((axis) => axis.name === 'pl7.app/sampleId'),
+      );
+
+    const allCols = [...pCols, ...metadataCols];
+    return allCols.map(
+      (c) =>
+        ({
+          columnId: c.id,
+          spec: c.spec,
+        } satisfies PColumnIdAndSpec),
+    );
+  })
+
+  // Returns PColumn specs for stacked barplot defaults
+  .output('stackedBarPCols', (ctx) => {
+    const pCols = ctx.outputs?.resolve('stackedBarPf')?.getPColumns();
+    if (pCols === undefined) {
+      return undefined;
+    }
+
+    // Get all metadata columns that are compatible with the Sample axis
+    const metadataCols = ctx.resultPool
+      .getData()
+      .entries.map((c) => c.obj)
+      .filter(isPColumn)
+      .filter((col) =>
+        col.spec.name === 'pl7.app/metadata'
+        && col.spec.axesSpec.some((axis) => axis.name === 'pl7.app/sampleId'),
+      );
+
+    const allCols = [...pCols, ...metadataCols];
+    return allCols.map(
+      (c) =>
+        ({
+          columnId: c.id,
+          spec: c.spec,
+        } satisfies PColumnIdAndSpec),
+    );
   })
 
   .output('isRunning', (ctx) => ctx.outputs?.getIsReadyOrError() === false)
 
   .sections((_ctx) => ([
     { type: 'link', href: '/', label: 'Main' },
+    { type: 'link', href: '/barplot', label: 'Barplot' },
+    { type: 'link', href: '/stacked-bar', label: 'Stacked Barplot' },
   ]))
 
   .title((ctx) =>
