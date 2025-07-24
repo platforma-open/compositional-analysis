@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import '@milaboratories/graph-maker/styles';
-import { PlAgDataTable, PlAgDataTableToolsPanel, PlBlockPage, PlBtnGhost, PlDropdown, PlDropdownMulti, PlDropdownRef, PlMaskIcon24, PlSlideModal } from '@platforma-sdk/ui-vue';
-import type { PlDataTableSettings } from '@platforma-sdk/ui-vue';
+import { PlAgDataTableV2, PlBlockPage, PlBtnGhost, PlDropdown, PlDropdownMulti, PlDropdownRef, PlMaskIcon24, PlSlideModal, usePlDataTableSettingsV2 } from '@platforma-sdk/ui-vue';
 import { useApp } from '../app';
 import { computed, reactive } from 'vue';
 import type { PlRef } from '@platforma-sdk/model';
@@ -9,11 +8,10 @@ import { plRefsEqual } from '@platforma-sdk/model';
 
 const app = useApp();
 
-const tableSettings = computed<PlDataTableSettings>(() => ({
-  sourceType: 'ptable',
-  pTable: app.model.outputs.resultsPt?.table,
-  sheets: app.model.outputs.resultsPt?.sheets,
-}));
+const tableSettings = usePlDataTableSettingsV2({
+  model: () => app.model.outputs.resultsPt?.table,
+  sheets: () => app.model.outputs.resultsPt?.sheets,
+});
 
 const data = reactive<{
   settingsOpen: boolean;
@@ -57,7 +55,6 @@ const baselineOptions = computed(() => {
     <template #title>Cluster Markers</template>
     <template #append>
       <!-- PlAgDataTableToolsPanel controls showing  Export column and filter-->
-      <PlAgDataTableToolsPanel/>
       <PlBtnGhost @click.stop="() => data.settingsOpen = true">
         Settings
         <template #append>
@@ -65,7 +62,7 @@ const baselineOptions = computed(() => {
         </template>
       </PlBtnGhost>
     </template>
-    <PlAgDataTable
+    <PlAgDataTableV2
       v-model="app.model.ui.tableState"
       :settings="tableSettings"
       show-columns-panel

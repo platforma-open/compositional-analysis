@@ -2,12 +2,13 @@ import type { GraphMakerState } from '@milaboratories/graph-maker';
 import type {
   InferOutputsType,
   PFrameHandle,
-  PlDataTableState,
+  PlDataTableStateV2,
   PlRef } from '@platforma-sdk/model';
 import {
   BlockModel,
   createPFrameForGraphs,
-  createPlDataTable,
+  createPlDataTableV2,
+  createPlDataTableStateV2,
   createPlDataTableSheet,
   getUniquePartitionKeys,
   // isPColumn,
@@ -17,7 +18,7 @@ import {
 export type UiState = {
   graphStateStackedBar: GraphMakerState;
   graphStateBarplot: GraphMakerState;
-  tableState: PlDataTableState;
+  tableState: PlDataTableStateV2;
 };
 
 export type BlockArgs = {
@@ -45,13 +46,7 @@ export const model = BlockModel.create()
       title: 'tSNE',
       template: 'dots',
     },
-    tableState: {
-      gridState: {},
-      pTableParams: {
-        sorting: [],
-        filters: [],
-      },
-    },
+    tableState: createPlDataTableStateV2(),
   })
 
   .output('countsOptions', (ctx) =>
@@ -95,7 +90,7 @@ export const model = BlockModel.create()
     if (!r) return undefined;
 
     return {
-      table: createPlDataTable(ctx, pCols, ctx.uiState?.tableState),
+      table: createPlDataTableV2(ctx, pCols, ctx.uiState?.tableState),
       sheets: r.map((values, i) => createPlDataTableSheet(ctx, anchor.spec.axesSpec[i], values)),
     };
   })
