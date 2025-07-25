@@ -10,40 +10,15 @@ const app = useApp();
 
 const defaultOptions = computed((): PredefinedGraphOption<'discrete'>[] | undefined => {
   try {
-    // Safety check for required outputs
+    // Return undefined if data not ready yet
     if (!app.model.outputs.barplotPCols || !app.model.args.contrastFactor) {
-      console.log('BoxplotPage: Missing required outputs or contrastFactor');
       return undefined;
     }
 
     const barplotPCols = app.model.outputs.barplotPCols;
-    console.log('BoxplotPage: Available columns:', barplotPCols.map((col) => ({ name: col.spec.name, axes: col.spec.axesSpec?.length })));
-
-    // DETAILED DEBUGGING - Log ALL column details
-    console.log('BoxplotPage: ALL COLUMNS DETAILED:');
-    barplotPCols.forEach((col, index) => {
-      console.log(`Column ${index}:`, {
-        name: col.spec.name,
-        domain: col.spec.domain,
-        axesSpec: col.spec.axesSpec,
-        axesCount: col.spec.axesSpec?.length,
-        fullSpec: col.spec,
-      });
-    });
-
-    // Safely find columns
+    
+    // Find required columns
     const abundanceCol = barplotPCols.find((col) => col.spec.name === 'pl7.app/rna-seq/abundance');
-
-    // LOG ABUNDANCE COLUMN DETAILS
-    if (abundanceCol) {
-      console.log('BoxplotPage: ABUNDANCE COLUMN DETAILS:', {
-        spec: abundanceCol.spec,
-        axesSpec: abundanceCol.spec.axesSpec,
-        axesCount: abundanceCol.spec.axesSpec?.length,
-        axis0: abundanceCol.spec.axesSpec?.[0],
-        axis1: abundanceCol.spec.axesSpec?.[1],
-      });
-    }
 
     // Dynamically resolve which metadata column matches the selected contrast factor reference
     const contrastFactorCol = (() => {
@@ -101,7 +76,6 @@ const defaultOptions = computed((): PredefinedGraphOption<'discrete'>[] | undefi
 <template>
   <PlBlockPage>
     <GraphMaker
-      v-if="app.model.outputs.boxplotPf"
       v-model="app.model.ui.graphStateBarplot"
       chartType="discrete"
       :data-state-key="app.model.args.contrastFactor?.name"

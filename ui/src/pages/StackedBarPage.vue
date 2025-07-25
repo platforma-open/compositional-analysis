@@ -10,40 +10,15 @@ const app = useApp();
 
 const defaultOptions = computed((): PredefinedGraphOption<'discrete'>[] | undefined => {
   try {
-    // Safety check for required outputs
+    // Return undefined if data not ready yet
     if (!app.model.outputs.stackedBarPCols || !app.model.args.contrastFactor) {
-      console.log('StackedBarPage: Missing required outputs or contrastFactor');
       return undefined;
     }
 
     const stackedBarPCols = app.model.outputs.stackedBarPCols;
-    console.log('StackedBarPage: Available columns:', stackedBarPCols.map((col) => ({ name: col.spec.name, axes: col.spec.axesSpec?.length })));
-
-    // DETAILED DEBUGGING - Log ALL column details
-    console.log('StackedBarPage: ALL COLUMNS DETAILED:');
-    stackedBarPCols.forEach((col, index) => {
-      console.log(`Column ${index}:`, {
-        name: col.spec.name,
-        domain: col.spec.domain,
-        axesSpec: col.spec.axesSpec,
-        axesCount: col.spec.axesSpec?.length,
-        fullSpec: col.spec,
-      });
-    });
-
-    // Safely find columns
+    
+    // Find required columns
     const relativeAbundanceCol = stackedBarPCols.find((col) => col.spec.name === 'pl7.app/rna-seq/relativeAbundance');
-
-    // LOG RELATIVE ABUNDANCE COLUMN DETAILS
-    if (relativeAbundanceCol) {
-      console.log('StackedBarPage: RELATIVE ABUNDANCE COLUMN DETAILS:', {
-        spec: relativeAbundanceCol.spec,
-        axesSpec: relativeAbundanceCol.spec.axesSpec,
-        axesCount: relativeAbundanceCol.spec.axesSpec?.length,
-        axis0: relativeAbundanceCol.spec.axesSpec?.[0],
-        axis1: relativeAbundanceCol.spec.axesSpec?.[1],
-      });
-    }
 
     // Dynamically resolve which metadata column matches the selected contrast factor reference
     const contrastFactorCol = (() => {
@@ -101,7 +76,6 @@ const defaultOptions = computed((): PredefinedGraphOption<'discrete'>[] | undefi
 <template>
   <PlBlockPage>
     <GraphMaker
-      v-if="app.model.outputs.stackedBarPf"
       v-model="app.model.ui.graphStateStackedBar"
       chartType="discrete"
       :data-state-key="app.model.args.contrastFactor?.name"
