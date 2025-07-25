@@ -22,7 +22,6 @@ export type UiState = {
 };
 
 export type BlockArgs = {
-  countsRef?: PlRef;
   covariateRefs: PlRef[];
   clusterAnnotationRef?: PlRef;
   contrastFactor?: PlRef;
@@ -48,12 +47,6 @@ export const model = BlockModel.create()
     },
     tableState: createPlDataTableStateV2(),
   })
-
-  .output('countsOptions', (ctx) =>
-    ctx.resultPool.getOptions((spec) => isPColumnSpec(spec)
-      && spec.name === 'pl7.app/rna-seq/countMatrix' && spec.domain?.['pl7.app/rna-seq/normalized'] === 'false'
-    , { includeNativeLabel: true, addLabelAsSuffix: true }),
-  )
 
   .output('metadataOptions', (ctx) =>
     ctx.resultPool.getOptions((spec) => isPColumnSpec(spec) && spec.name === 'pl7.app/metadata'),
