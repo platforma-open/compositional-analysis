@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import '@milaboratories/graph-maker/styles';
+import type { PlRef } from '@platforma-sdk/model';
+import { plRefsEqual } from '@platforma-sdk/model';
 import { PlAgDataTableV2, PlBlockPage, PlBtnGhost, PlDropdown, PlDropdownMulti, PlDropdownRef, PlMaskIcon24, PlSlideModal, usePlDataTableSettingsV2 } from '@platforma-sdk/ui-vue';
 import { useApp } from '../app';
 import { computed, reactive } from 'vue';
@@ -16,6 +18,18 @@ const data = reactive<{
 }>({
   settingsOpen: app.model.args.clusterAnnotationRef === undefined,
 });
+
+// Update page title by cluster annotation
+function setClusterAnnotation(clusterAnnotationRef?: PlRef) {
+  app.model.args.clusterAnnotationRef = clusterAnnotationRef;
+  if (clusterAnnotationRef) {
+    const annotationLabel = app.model.outputs.clusterAnnotationOptions?.find((o) => plRefsEqual(o.ref, clusterAnnotationRef))?.label;
+    if (annotationLabel)
+      app.model.ui.title = 'Compositional Analysis - ' + annotationLabel;
+  } else {
+    app.model.ui.title = undefined;
+  }
+}
 
 const covariateOptions = computed(() => {
   return app.model.outputs.metadataOptions?.map((v) => ({
@@ -59,7 +73,8 @@ const baselineOptions = computed(() => {
     <PlSlideModal v-model="data.settingsOpen">
       <template #title>Settings</template>
       <PlDropdownRef
-        v-model="app.model.args.clusterAnnotationRef"
+        :model-value="app.model.args.clusterAnnotationRef"
+        @update:model-value="setClusterAnnotation"
         :options="app.model.outputs.clusterAnnotationOptions"
         label="Cell annotation"
         required

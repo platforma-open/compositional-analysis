@@ -16,6 +16,7 @@ import {
 } from '@platforma-sdk/model';
 
 export type UiState = {
+  title?: string;
   graphStateStackedBar: GraphMakerState;
   graphStateBarplot: GraphMakerState;
   tableState: PlDataTableStateV2;
@@ -215,11 +216,7 @@ export const model = BlockModel.create()
     { type: 'link', href: '/stacked-bar', label: 'Cell Group Composition' },
   ]))
 
-  .title((ctx) =>
-    ctx.args.title
-      ? `Compositional Analysis - ${ctx.args.title}`
-      : 'Compositional Analysis',
-  )
+  .title((ctx) => ctx.uiState.title ?? 'Compositional Analysis')
 
   .done();
 
