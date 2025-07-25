@@ -35,6 +35,27 @@ export const model = BlockModel.create()
     covariateRefs: [],
   })
 
+  .argsValid((ctx) => {
+    // Check if all required fields are provided
+    if (!ctx.args.clusterAnnotationRef) {
+      return false;
+    }
+
+    if (!ctx.args.covariateRefs || ctx.args.covariateRefs.length === 0) {
+      return false;
+    }
+
+    if (!ctx.args.contrastFactor) {
+      return false;
+    }
+
+    if (!ctx.args.baseline || ctx.args.baseline.trim() === '') {
+      return false;
+    }
+
+    return true;
+  })
+
   .withUiState<UiState>({
 
     graphStateStackedBar: {
@@ -190,8 +211,8 @@ export const model = BlockModel.create()
 
   .sections((_ctx) => ([
     { type: 'link', href: '/', label: 'Main' },
-    { type: 'link', href: '/barplot', label: 'Barplot' },
-    { type: 'link', href: '/stacked-bar', label: 'Stacked Barplot' },
+    { type: 'link', href: '/barplot', label: 'Cell Group Abundance' },
+    { type: 'link', href: '/stacked-bar', label: 'Cell Group Composition' },
   ]))
 
   .title((ctx) =>

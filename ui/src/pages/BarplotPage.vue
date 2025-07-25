@@ -108,19 +108,5 @@ const defaultOptions = computed((): PredefinedGraphOption<'discrete'>[] | undefi
       :p-frame="app.model.outputs.boxplotPf"
       :default-options="defaultOptions"
     />
-    <div v-else class="no-data">
-      <p>No data available. Please configure the analysis in the Main section first.</p>
-    </div>
   </PlBlockPage>
 </template>
-
-<style scoped>
-.no-data {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 400px;
-  color: var(--text-secondary);
-  font-size: 16px;
-}
-</style>

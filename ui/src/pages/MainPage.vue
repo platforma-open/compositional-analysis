@@ -44,7 +44,6 @@ const baselineOptions = computed(() => {
   <PlBlockPage>
     <template #title>Compositional Analysis</template>
     <template #append>
-      <!-- PlAgDataTableToolsPanel controls showing  Export column and filter-->
       <PlBtnGhost @click.stop="() => data.settingsOpen = true">
         Settings
         <template #append>
@@ -55,18 +54,72 @@ const baselineOptions = computed(() => {
     <PlAgDataTableV2
       v-model="app.model.ui.tableState"
       :settings="tableSettings"
-      show-columns-panel
       show-export-button
     />
     <PlSlideModal v-model="data.settingsOpen">
       <template #title>Settings</template>
       <PlDropdownRef
-        v-model="app.model.args.clusterAnnotationRef" :options="app.model.outputs.clusterAnnotationOptions"
+        v-model="app.model.args.clusterAnnotationRef"
+        :options="app.model.outputs.clusterAnnotationOptions"
         label="Cell annotation"
-      />
-      <PlDropdownMulti v-model="app.model.args.covariateRefs" :options="covariateOptions" label="Covariates" />
-      <PlDropdown v-model="app.model.args.contrastFactor" :options="contrastFactorOptions" label="Contrast factor" />
-      <PlDropdown v-model="app.model.args.baseline" :options="baselineOptions" label="Baseline" />
+        required
+        :validate="(value: unknown) => value === undefined ? 'Cell annotation is required' : undefined"
+        clearable
+      >
+        <template #tooltip>
+          <div>
+            <strong>Cell type or cluster annotation</strong><br/>
+            Select the cell type or cluster annotation data. This defines the cellular populations to analyze for compositional differences.
+          </div>
+        </template>
+      </PlDropdownRef>
+
+      <PlDropdownMulti
+        v-model="app.model.args.covariateRefs"
+        :options="covariateOptions"
+        label="Covariates"
+        required
+        :validate="(value: unknown) => !value || (Array.isArray(value) && value.length === 0) ? 'At least one covariate is required' : undefined"
+      >
+        <template #tooltip>
+          <div>
+            <strong>Metadata variables</strong><br/>
+            Select metadata variables that may influence cell composition (e.g., experimental conditions, time points, treatments, patient characteristics).
+          </div>
+        </template>
+      </PlDropdownMulti>
+
+      <PlDropdown
+        v-model="app.model.args.contrastFactor"
+        :options="contrastFactorOptions"
+        label="Contrast factor"
+        required
+        :validate="(value: unknown) => value === undefined ? 'Contrast factor is required' : undefined"
+        :disabled="contrastFactorOptions.length === 0"
+      >
+        <template #tooltip>
+          <div>
+            <strong>Main experimental variable</strong><br/>
+            Choose the main experimental variable to compare (e.g., treatment vs control, disease vs healthy). This will be tested for compositional differences.
+          </div>
+        </template>
+      </PlDropdown>
+
+      <PlDropdown
+        v-model="app.model.args.baseline"
+        :options="baselineOptions"
+        label="Baseline condition"
+        required
+        :validate="(value: unknown) => value === undefined ? 'Baseline condition is required' : undefined"
+        :disabled="!baselineOptions || baselineOptions.length === 0"
+      >
+        <template #tooltip>
+          <div>
+            <strong>Reference condition</strong><br/>
+            Select the reference condition for comparison (e.g., 'control', 'untreated', 'healthy'). Compositional changes will be reported relative to this baseline.
+          </div>
+        </template>
+      </PlDropdown>
     </PlSlideModal>
   </PlBlockPage>
 </template>
