@@ -19,8 +19,9 @@ def calculate_fold_changes(count_table, groups, baseline_group):
         if group == baseline_group:
             continue
         for cell_type in count_table.columns:
-            baseline_mean = count_table.loc[count_table.index.get_level_values(0) == baseline_group, cell_type].mean()
-            group_mean = count_table.loc[count_table.index.get_level_values(0) == group, cell_type].mean()
+            # Fix: Use simple index instead of get_level_values for grouped data
+            baseline_mean = count_table.loc[count_table.index == baseline_group, cell_type].mean()
+            group_mean = count_table.loc[count_table.index == group, cell_type].mean()
             log2_fc = np.log2((group_mean + pseudocount) / (baseline_mean + pseudocount))
             fold_changes.append({
                 "group": group,
@@ -72,17 +73,51 @@ def main():
         ca = comp_ana.CompositionalAnalysis(adata, formula=formula)
         results = ca.sample_hmc()
         eff_df = results.effect_df
+        
+        # Store references for manual fold change calculation if needed
+        contrast_var = args.contrast_column
+        baseline = args.baseline_level
 
         for idx, row in eff_df.iterrows():
             group, cell_type = idx
             log2fc = row["log2-fold change"]
-            q_value = row.get("q-value", np.nan)
-            credible = row.get("credible", False)
+            inclusion_prob = row.get("Inclusion probability", np.nan)
+            # Consider significant if inclusion probability > 0.95 (95% credible)
+            credible = inclusion_prob > 0.95 if not np.isnan(inclusion_prob) else False
+            
+            # BUG FIX: If scCODA's log2-fold change is 0, calculate manually
+            if log2fc == 0.0:
+                
+                # Get the test group name from the formula result
+                test_group = None
+                if "Test" in str(group):
+                    test_groups = metadata[metadata[contrast_var] != baseline][contrast_var].unique()
+                    if len(test_groups) == 1:
+                        test_group = test_groups[0]
+                
+                if test_group:
+                    # Calculate manual fold change
+                    control_samples = metadata[metadata[contrast_var] == baseline]['Sample'].tolist()
+                    test_samples = metadata[metadata[contrast_var] == test_group]['Sample'].tolist()
+                    
+                    # Get counts for this cell type (convert to int if needed)
+                    cell_type_col = int(cell_type) if str(cell_type).isdigit() else cell_type
+                    control_total = count_table.loc[control_samples, cell_type_col].sum()
+                    control_cells = count_table.loc[control_samples].sum().sum()
+                    test_total = count_table.loc[test_samples, cell_type_col].sum()
+                    test_cells = count_table.loc[test_samples].sum().sum()
+                    
+                    # Calculate proportions and log2 fold change
+                    control_prop = control_total / control_cells
+                    test_prop = test_total / test_cells
+                    pseudocount = 0.5
+                    log2fc = np.log2((test_prop + pseudocount/test_cells) / (control_prop + pseudocount/control_cells))
+            
             result_rows.append({
                 "group": group,
                 "cell_type": cell_type,
                 "log2_fold_change": log2fc,
-                "q_value": q_value,
+                "q_value": inclusion_prob,  # Use inclusion probability as scCODA's significance measure
                 "credible": credible
             })
 
