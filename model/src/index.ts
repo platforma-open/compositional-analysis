@@ -92,6 +92,14 @@ export const model = BlockModel.create()
     return [...new Set(Object.values(values))];
   })
 
+  .output('replicateWarning', (ctx) => {
+    const analysisMethod = ctx.outputs?.resolve('analysisMethod')?.getDataAsJson();
+    if (analysisMethod === 'foldChange') {
+      return 'Insufficient replicates for statistical testing. Analysis will show fold-changes only, without significance testing.';
+    }
+    return undefined;
+  })
+
   .output('resultsPt', (ctx) => {
     const pCols = ctx.outputs?.resolve('resultsPf')?.getPColumns();
     if (pCols === undefined) {

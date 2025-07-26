@@ -10,6 +10,8 @@ pfResultsConv := import(":pf-results-conv")
 pfBoxplotConv := import(":pf-boxplot-conv")
 pfStackedBarConv := import(":pf-stacked-bar-conv")
 
+
+
 wf.prepare(func(args){
 	// Validate cluster annotation is provided
 	if is_undefined(args.clusterAnnotationRef) {
@@ -51,6 +53,48 @@ wf.prepare(func(args){
 wf.body(func(args) {
 	// Extract block ID as string
 	blockId := wf.blockId().getDataAsJson()
+	
+	// First, run replicates evaluation to determine analysis method
+	// Get resolved inputs for replicates evaluation
+	contrastFactor := args.resolvedContrastFactor
+	
+	// Build covariates array from resolved references
+	covariates := []
+	i := 0
+	for {
+		metaRefKey := "metaRef" + string(i)
+		if is_undefined(args[metaRefKey]) {
+			break
+		}
+		covariates = append(covariates, args[metaRefKey])
+		i = i + 1
+	}
+	
+	// Get contrast column name from annotations
+	contrastColumn := undefined
+	if !is_undefined(contrastFactor) {
+		contrastColumn = contrastFactor.spec.annotations["pl7.app/label"]
+	}
+	
+	// Export covariates data to CSV file for the replicates analysis
+	csvCovariatesForReplicates := xsv.exportFrame(covariates, "csv", {})
+	
+	// Run replicates evaluation software to determine analysis method
+	replicatesEvaluation := exec.builder().
+		software(assets.importSoftware("@platforma-open/milaboratories.compositional-analysis.replicates:evaluate-replicates")).
+		addFile("metadata.csv", csvCovariatesForReplicates).
+		arg("--metadata_csv").arg("metadata.csv").
+		arg("--contrast_column").arg(string(contrastColumn)).
+		arg("--output_file").arg("analysis_method.txt").
+		saveFile("analysis_method.txt").
+		saveFileContent("analysis_method.txt").
+		printErrStreamToStdout().
+		saveStdoutContent().
+		cache(24 * 60 * 60 * 1000).
+		run()
+	
+	// Read the analysis method content
+	analysisMethod := replicatesEvaluation.getFileContent("analysis_method.txt")
 	
 	// Get the resolved cluster annotation
 	columns := args.columns
@@ -100,20 +144,7 @@ wf.body(func(args) {
 	}
 	
 	// Get other resolved inputs
-	contrastFactor := args.resolvedContrastFactor
 	baseline := args.baseline
-	
-	// Build covariates array from resolved references
-	covariates := []
-	i := 0
-	for {
-		metaRefKey := "metaRef" + string(i)
-		if is_undefined(args[metaRefKey]) {
-			break
-		}
-		covariates = append(covariates, args[metaRefKey])
-		i = i + 1
-	}
 	
 	// Extract input spec for later use
 	inputSpec := rawCounts.spec
@@ -122,11 +153,6 @@ wf.body(func(args) {
 	clusterColumn := undefined
 	if !is_undefined(clusterAnnotation) {
 		clusterColumn = clusterAnnotation.spec.annotations["pl7.app/label"]
-	}
-	
-	contrastColumn := undefined
-	if !is_undefined(contrastFactor) {
-		contrastColumn = contrastFactor.spec.annotations["pl7.app/label"]
 	}
 	
 	// Export data to CSV files for the analysis software
@@ -166,7 +192,8 @@ wf.body(func(args) {
 		outputs: {
 			resultsPf: pframes.exportFrame(resultsPf),
 			boxplotPf: pframes.exportFrame(boxplotPf),
-			stackedBarPf: pframes.exportFrame(stackedBarPf)
+			stackedBarPf: pframes.exportFrame(stackedBarPf),
+			analysisMethod: analysisMethod
 		},
 		exports: {}
 	}

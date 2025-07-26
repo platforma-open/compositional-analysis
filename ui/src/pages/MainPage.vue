@@ -2,7 +2,7 @@
 import '@milaboratories/graph-maker/styles';
 import type { PlRef } from '@platforma-sdk/model';
 import { plRefsEqual } from '@platforma-sdk/model';
-import { PlAgDataTableV2, PlBlockPage, PlBtnGhost, PlDropdown, PlDropdownMulti, PlDropdownRef, PlMaskIcon24, PlSlideModal, usePlDataTableSettingsV2 } from '@platforma-sdk/ui-vue';
+import { PlAgDataTableV2, PlAlert, PlBlockPage, PlBtnGhost, PlDropdown, PlDropdownMulti, PlDropdownRef, PlMaskIcon24, PlSlideModal, usePlDataTableSettingsV2 } from '@platforma-sdk/ui-vue';
 import { useApp } from '../app';
 import { computed, reactive } from 'vue';
 
@@ -72,6 +72,7 @@ const baselineOptions = computed(() => {
     />
     <PlSlideModal v-model="data.settingsOpen">
       <template #title>Settings</template>
+      
       <PlDropdownRef
         :model-value="app.model.args.clusterAnnotationRef"
         @update:model-value="setClusterAnnotation"
@@ -135,6 +136,11 @@ const baselineOptions = computed(() => {
           </div>
         </template>
       </PlDropdown>
+      
+      <!-- Warning for replicates analysis method -->
+      <PlAlert v-if="app.model.outputs.replicateWarning" type="warn">
+        {{ app.model.outputs.replicateWarning }}
+      </PlAlert>
     </PlSlideModal>
   </PlBlockPage>
 </template>
