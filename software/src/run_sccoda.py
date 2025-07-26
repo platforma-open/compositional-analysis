@@ -80,6 +80,13 @@ def main():
 
         for idx, row in eff_df.iterrows():
             group, cell_type = idx
+            # Extract simple group name from scCODA's formula notation
+            # e.g., "C(Testing, Treatment(reference="Control"))[T.Test]" → "Test"
+            if "[T." in str(group) and "]" in str(group):
+                simple_group = str(group).split("[T.")[1].split("]")[0]
+            else:
+                simple_group = str(group)
+            
             log2fc = row["log2-fold change"]
             inclusion_prob = row.get("Inclusion probability", np.nan)
             # Consider significant if inclusion probability > 0.95 (95% credible)
@@ -88,12 +95,10 @@ def main():
             # BUG FIX: If scCODA's log2-fold change is 0, calculate manually
             if log2fc == 0.0:
                 
-                # Get the test group name from the formula result
+                # Get the test group name from the simple group name
                 test_group = None
-                if "Test" in str(group):
-                    test_groups = metadata[metadata[contrast_var] != baseline][contrast_var].unique()
-                    if len(test_groups) == 1:
-                        test_group = test_groups[0]
+                if simple_group != baseline:
+                    test_group = simple_group
                 
                 if test_group:
                     # Calculate manual fold change
@@ -114,7 +119,7 @@ def main():
                     log2fc = np.log2((test_prop + pseudocount/test_cells) / (control_prop + pseudocount/control_cells))
             
             result_rows.append({
-                "group": group,
+                "group": simple_group,
                 "cell_type": cell_type,
                 "log2_fold_change": log2fc,
                 "q_value": inclusion_prob,  # Use inclusion probability as scCODA's significance measure
