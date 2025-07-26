@@ -1,10 +1,11 @@
 packages:
-  - software
+  - software/sccoda
+  - software/replicates
   - workflow
   - model
   - ui
-  - test
   - block
+  - test
 
 catalog:
   "@platforma-sdk/model": ^1.42.0

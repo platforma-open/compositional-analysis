@@ -135,7 +135,7 @@ wf.body(func(args) {
 	
 	// Run compositional analysis software
 	compositionalAnalysis := exec.builder().
-		software(assets.importSoftware("@platforma-open/milaboratories.compositional-analysis.software:run-compositional-analysis")).
+		software(assets.importSoftware("@platforma-open/milaboratories.compositional-analysis.sccoda:run-compositional-analysis")).
 		addFile("metadata.csv", csvCovariates).
 		addFile("clusters.csv", csvClusters).
 		arg("--metadata_csv").arg("metadata.csv").

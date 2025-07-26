@@ -9,7 +9,8 @@
     "format": "/usr/bin/env emacs --script ./format.el"
   },
   "dependencies": {
-    "@platforma-open/milaboratories.compositional-analysis.software": "workspace:*"
+    "@platforma-open/milaboratories.compositional-analysis.sccoda": "workspace:*",
+    "@platforma-open/milaboratories.compositional-analysis.replicates": "workspace:*"
   },
   "devDependencies": {
     "@platforma-sdk/tengo-builder": "catalog:",

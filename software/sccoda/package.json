@@ -1,5 +1,5 @@
 {
-  "name": "@platforma-open/milaboratories.compositional-analysis.software",
+  "name": "@platforma-open/milaboratories.compositional-analysis.sccoda",
   "version": "1.0.0",
   "scripts": {
     "build": "pl-pkg build",
