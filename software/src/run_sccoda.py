@@ -139,16 +139,47 @@ def main():
     results_df.to_csv(os.path.join(args.output_dir, "sccoda_results_summary.csv"), index=False)
     print(f"✅ Saved scCODA results to {os.path.join(args.output_dir, 'sccoda_results_summary.csv')}")
 
-    # Save relative counts for barplots
-    rel_counts = (
+    # Save relative counts for barplots (adjusted for stacked barplots while keeping Sample format)
+    # Step 1: Calculate sample counts
+    sample_counts = (
         merged.groupby(["Sample", args.cell_type_column])
         .size()
         .unstack(fill_value=0)
     )
-
-    rel_counts = rel_counts.div(rel_counts.sum(axis=1), axis=0) * 100
-
-    rel_counts_melted = rel_counts.reset_index().melt(id_vars="Sample", var_name="Cluster", value_name="Relative abundance")
+    
+    # Step 2: Calculate group-wise target percentages
+    group_counts = (
+        merged.groupby([args.contrast_column, args.cell_type_column])
+        .size()
+        .unstack(fill_value=0)
+    )
+    group_rel_counts = group_counts.div(group_counts.sum(axis=1), axis=0) * 100
+    
+    # Step 3: Distribute group percentages back to samples proportionally
+    adjusted_sample_counts = sample_counts.copy().astype(float)  # Convert to float to avoid dtype warnings
+    for sample in sample_counts.index:
+        # Get the metadata group for this sample
+        sample_group = metadata[metadata['Sample'] == sample][args.contrast_column].iloc[0]
+        
+        # Get group totals for each cluster
+        group_totals = group_counts.loc[sample_group]
+        
+        # Calculate sample's contribution to each cluster within its group
+        for cluster in sample_counts.columns:
+            if group_totals[cluster] > 0:  # Avoid division by zero
+                sample_contribution_ratio = sample_counts.loc[sample, cluster] / group_totals[cluster]
+                # Assign proportional share of group's target percentage
+                adjusted_sample_counts.loc[sample, cluster] = group_rel_counts.loc[sample_group, cluster] * sample_contribution_ratio
+            else:
+                adjusted_sample_counts.loc[sample, cluster] = 0
+    
+    # Step 4: Melt for output (keeping Sample format for pipeline compatibility)
+    rel_counts_melted = adjusted_sample_counts.reset_index().melt(
+        id_vars="Sample", 
+        var_name="Cluster", 
+        value_name="Relative abundance"
+    )
+    
     rel_counts_melted.to_csv(os.path.join(args.output_dir, "relative_counts_for_barplot.csv"), index=False)
     print(f"✅ Saved relative counts for barplot to {os.path.join(args.output_dir, 'relative_counts_for_barplot.csv')}")
 
