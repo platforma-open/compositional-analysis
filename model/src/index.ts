@@ -58,14 +58,15 @@ export const model = BlockModel.create()
   })
 
   .withUiState<UiState>({
-
     graphStateStackedBar: {
       title: 'Cell Group Composition',
       template: 'stackedBar',
+      currentTab: null,
     },
     graphStateBarplot: {
       title: 'Cell Group Abundance',
       template: 'bar',
+      currentTab: null,
     },
     tableState: createPlDataTableStateV2(),
   })

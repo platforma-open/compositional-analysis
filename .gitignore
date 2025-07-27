@@ -9,5 +9,7 @@ log/
 vite.config.*.timestamp-*
 software/**/*.sw.json
 software/**/*.tgz
+software/*.tgz
 .DS_Store
 .vscode/sftp.json
+.vscode/settings.json

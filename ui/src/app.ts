@@ -4,8 +4,11 @@ import MainPage from './pages/MainPage.vue';
 import BarplotPage from './pages/BarplotPage.vue';
 import StackedBarPage from './pages/StackedBarPage.vue';
 
-export const sdkPlugin = defineApp(model, () => {
+export const sdkPlugin = defineApp(model, (app) => {
   return {
+    progress: () => {
+      return app.model.outputs.isRunning;
+    },
     routes: {
       '/': () => MainPage,
       '/barplot': () => BarplotPage,
