@@ -4,13 +4,30 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Hide TensorFlow INFO and WARNING mes
 import warnings
 warnings.filterwarnings('ignore', category=UserWarning)  # Ignore general harmless warnings like from anndata
 
-import pandas as pd
-import numpy as np
-import anndata as ad
-import os
+import sys
 import argparse
-import sccoda.util.comp_ana as comp_ana
+from contextlib import contextmanager
 
+@contextmanager
+def suppress_stderr():
+    """A context manager that redirects stderr to devnull at the OS level."""
+    original_stderr_fd = sys.stderr.fileno()
+    saved_stderr_fd = os.dup(original_stderr_fd)
+    try:
+        devnull_fd = os.open(os.devnull, os.O_WRONLY)
+        os.dup2(devnull_fd, original_stderr_fd)
+        os.close(devnull_fd)
+        yield
+    finally:
+        os.dup2(saved_stderr_fd, original_stderr_fd)
+        os.close(saved_stderr_fd)
+
+# Suppress C++-level warnings by redirecting stderr during noisy imports
+with suppress_stderr():
+    import pandas as pd
+    import numpy as np
+    import anndata as ad
+    import sccoda.util.comp_ana as comp_ana
 
 def calculate_fold_changes(count_table, groups, baseline_group):
     fold_changes = []
@@ -200,4 +217,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    with suppress_stderr():
+        main()

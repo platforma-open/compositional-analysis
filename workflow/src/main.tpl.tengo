@@ -89,7 +89,6 @@ wf.body(func(args) {
 		saveFile("analysis_method.txt").
 		saveFileContent("analysis_method.txt").
 		printErrStreamToStdout().
-		saveStdoutContent().
 		cache(24 * 60 * 60 * 1000).
 		run()
 	
@@ -174,7 +173,6 @@ wf.body(func(args) {
 		saveFile("relative_counts_for_barplot.csv").
 		saveFile("counts_for_boxplot.csv").
 		printErrStreamToStdout().
-		saveStdoutContent().
 		cache(24 * 60 * 60 * 1000).
 		run()
 	
@@ -193,7 +191,8 @@ wf.body(func(args) {
 			resultsPf: pframes.exportFrame(resultsPf),
 			boxplotPf: pframes.exportFrame(boxplotPf),
 			stackedBarPf: pframes.exportFrame(stackedBarPf),
-			analysisMethod: analysisMethod
+			analysisMethod: analysisMethod,
+			sccodaOutput: compositionalAnalysis.getStdoutStream()
 		},
 		exports: {}
 	}

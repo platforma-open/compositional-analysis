@@ -229,6 +229,7 @@ export const model = BlockModel.create()
   })
 
   .output('isRunning', (ctx) => ctx.outputs?.getIsReadyOrError() === false)
+  .output('sccodaOutput', (ctx) => ctx.outputs?.resolve('sccodaOutput')?.getLogHandle())
 
   .sections((_ctx) => ([
     { type: 'link', href: '/', label: 'Main' },

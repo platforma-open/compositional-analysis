@@ -2,11 +2,13 @@
 import '@milaboratories/graph-maker/styles';
 import type { PlRef } from '@platforma-sdk/model';
 import { plRefsEqual } from '@platforma-sdk/model';
-import { PlAgDataTableV2, PlAlert, PlBlockPage, PlBtnGhost, PlDropdown, PlDropdownMulti, PlDropdownRef, PlMaskIcon24, PlSlideModal, usePlDataTableSettingsV2 } from '@platforma-sdk/ui-vue';
+import { PlAgDataTableV2, PlAlert, PlBlockPage, PlBtnGhost, PlDropdown, PlDropdownMulti, PlDropdownRef, PlLogView, PlMaskIcon24, PlSlideModal, usePlDataTableSettingsV2 } from '@platforma-sdk/ui-vue';
 import { useApp } from '../app';
-import { computed, reactive } from 'vue';
+import { computed, reactive, ref } from 'vue';
 
 const app = useApp();
+
+const sccodaLogOpen = ref(false);
 
 const tableSettings = usePlDataTableSettingsV2({
   model: () => app.model.outputs.resultsPt?.table,
@@ -58,6 +60,12 @@ const baselineOptions = computed(() => {
   <PlBlockPage>
     <template #title>Compositional Analysis</template>
     <template #append>
+      <PlBtnGhost @click.stop="() => sccodaLogOpen = true">
+        Logs
+        <template #append>
+          <PlMaskIcon24 name="progress" />
+        </template>
+      </PlBtnGhost>
       <PlBtnGhost @click.stop="() => data.settingsOpen = true">
         Settings
         <template #append>
@@ -72,15 +80,14 @@ const baselineOptions = computed(() => {
     />
     <PlSlideModal v-model="data.settingsOpen">
       <template #title>Settings</template>
-      
       <PlDropdownRef
         :model-value="app.model.args.clusterAnnotationRef"
-        @update:model-value="setClusterAnnotation"
         :options="app.model.outputs.clusterAnnotationOptions"
         label="Cell annotation"
         required
         :validate="(value: unknown) => value === undefined ? 'Cell annotation is required' : undefined"
         clearable
+        @update:model-value="setClusterAnnotation"
       >
         <template #tooltip>
           <div>
@@ -136,11 +143,14 @@ const baselineOptions = computed(() => {
           </div>
         </template>
       </PlDropdown>
-      
       <!-- Warning for replicates analysis method -->
       <PlAlert v-if="app.model.outputs.replicateWarning" type="warn">
         {{ app.model.outputs.replicateWarning }}
       </PlAlert>
+    </PlSlideModal>
+    <PlSlideModal v-model="sccodaLogOpen" width="80%">
+      <template #title>scCODA Log</template>
+      <PlLogView :log-handle="app.model.outputs.sccodaOutput"/>
     </PlSlideModal>
   </PlBlockPage>
 </template>
