@@ -31,7 +31,7 @@ def main():
     if output_dir:
         os.makedirs(output_dir, exist_ok=True)
     with open(args.output_file, 'w') as f:
-        f.write(json.dumps(analysis_method))
+        json.dump(analysis_method, f)
     
     print(f"Analysis method: {analysis_method}")
     print(f"Result written to: {args.output_file}")

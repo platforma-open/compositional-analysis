@@ -101,19 +101,30 @@ export const model = BlockModel.create()
   })
 
   .output('resultsPt', (ctx) => {
+    // Get the original PFrame from workflow
     const pCols = ctx.outputs?.resolve('resultsPf')?.getPColumns();
     if (pCols === undefined) {
       return undefined;
     }
 
-    const anchor = pCols[0];
+    // Filter out q-value column if analysis method is foldChange (insufficient replicates)
+    const analysisMethod = ctx.outputs?.resolve('analysisMethod')?.getDataAsJson();
+
+    // Filter the input columns before passing to createPlDataTableV2
+    const filteredPCols = analysisMethod === 'foldChange'
+      ? pCols.filter((col) => col.spec.name !== 'pl7.app/rna-seq/qvalue')
+      : pCols;
+
+    if (filteredPCols.length === 0) return undefined;
+
+    const anchor = filteredPCols[0];
     if (!anchor) return undefined;
 
     const r = getUniquePartitionKeys(anchor.data);
     if (!r) return undefined;
 
     return {
-      table: createPlDataTableV2(ctx, pCols, ctx.uiState?.tableState),
+      table: createPlDataTableV2(ctx, filteredPCols, ctx.uiState?.tableState),
       sheets: r.map((values, i) => createPlDataTableSheet(ctx, anchor.spec.axesSpec[i], values)),
     };
   })

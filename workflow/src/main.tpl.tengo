@@ -178,7 +178,7 @@ wf.body(func(args) {
 		cache(24 * 60 * 60 * 1000).
 		run()
 	
-	// Import results back as PFrames
+		// Import results back as PFrames - always include both columns
 	resultsImportParams := pfResultsConv.getColumns(blockId)
 	resultsPf := xsv.importFile(compositionalAnalysis.getFile("sccoda_results_summary.csv"), "csv", resultsImportParams)
 	
