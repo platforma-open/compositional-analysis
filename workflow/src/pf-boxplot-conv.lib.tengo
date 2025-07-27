@@ -1,0 +1,47 @@
+ll := import("@platforma-sdk/workflow-tengo:ll")
+
+getColumns := func(blockId, inputSpec) {
+  return {
+    "axes": [
+		{
+        "column": "Sample",
+        "spec": inputSpec.axesSpec[0]
+      },
+		{
+        "column": "Cluster",
+        "id": "cellgroup",
+        "allowNA": false,
+        "spec": {
+          "name": "pl7.app/rna-seq/cellGroup",
+          "type": "String",
+          "domain": {
+            "pl7.app/blockId": blockId
+          },
+          "annotations": {
+            "pl7.app/label": "Cell group"
+          }
+        }
+      }
+      ],
+    "columns": [
+			{
+				"column": "Abundance",
+				"id": "abundance",
+				"allowNA": true,
+				"spec": {
+					"name": "pl7.app/rna-seq/abundance",
+					"valueType": "Double",
+					"annotations": {
+						"pl7.app/label": "Abundance"
+					}
+				}
+			}
+      ],
+    "storageFormat": "Binary",
+    "partitionKeyLength": 1
+  }
+}
+
+export ll.toStrict({
+	getColumns: getColumns
+})

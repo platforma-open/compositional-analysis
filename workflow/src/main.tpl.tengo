@@ -1,0 +1,200 @@
+wf := import("@platforma-sdk/workflow-tengo:workflow")
+exec := import("@platforma-sdk/workflow-tengo:exec")
+assets := import("@platforma-sdk/workflow-tengo:assets")
+xsv := import("@platforma-sdk/workflow-tengo:pframes.xsv")
+pframes := import("@platforma-sdk/workflow-tengo:pframes")
+pSpec := import("@platforma-sdk/workflow-tengo:pframes.spec")
+json := import("json")
+
+pfResultsConv := import(":pf-results-conv")
+pfBoxplotConv := import(":pf-boxplot-conv")
+pfStackedBarConv := import(":pf-stacked-bar-conv")
+
+
+
+wf.prepare(func(args){
+	// Validate cluster annotation is provided
+	if is_undefined(args.clusterAnnotationRef) {
+		error("Cluster annotation is required")
+	}
+
+	prepared := {}
+
+	// Create bundle builder for automatic PColumn discovery
+	bundleBuilder := wf.createPBundleBuilder()
+	bundleBuilder.ignoreMissingDomains() // Handle various data types
+	
+	// Add the cluster annotation as the main anchor
+	bundleBuilder.addAnchor("clusters", args.clusterAnnotationRef)
+	
+	// Add query for count matrix - we'll filter this in body based on trace analysis
+	bundleBuilder.addMulti({
+		name: "pl7.app/rna-seq/countMatrix",
+		domain: {
+			"pl7.app/rna-seq/normalized": "false"
+		}
+	}, "countMatrices")
+	
+	prepared.columns = bundleBuilder.build()
+	
+	// Resolve contrast factor and covariates separately
+	if !is_undefined(args.contrastFactor) {
+		prepared.resolvedContrastFactor = wf.resolve(args.contrastFactor)
+	}
+	
+	// Resolve covariate references
+	for i, metaRef in args.covariateRefs {
+		prepared["metaRef" + string(i)] = wf.resolve(metaRef, { errIfMissing: true })
+	}
+	
+	return prepared
+})
+
+wf.body(func(args) {
+	// Extract block ID as string
+	blockId := wf.blockId().getDataAsJson()
+	
+	// First, run replicates evaluation to determine analysis method
+	// Get resolved inputs for replicates evaluation
+	contrastFactor := args.resolvedContrastFactor
+	
+	// Build covariates array from resolved references
+	covariates := []
+	i := 0
+	for {
+		metaRefKey := "metaRef" + string(i)
+		if is_undefined(args[metaRefKey]) {
+			break
+		}
+		covariates = append(covariates, args[metaRefKey])
+		i = i + 1
+	}
+	
+	// Get contrast column name from annotations
+	contrastColumn := undefined
+	if !is_undefined(contrastFactor) {
+		contrastColumn = contrastFactor.spec.annotations["pl7.app/label"]
+	}
+	
+	// Export covariates data to CSV file for the replicates analysis
+	csvCovariatesForReplicates := xsv.exportFrame(covariates, "csv", {})
+	
+	// Run replicates evaluation software to determine analysis method
+	replicatesEvaluation := exec.builder().
+		software(assets.importSoftware("@platforma-open/milaboratories.compositional-analysis.replicates:evaluate-replicates")).
+		addFile("metadata.csv", csvCovariatesForReplicates).
+		arg("--metadata_csv").arg("metadata.csv").
+		arg("--contrast_column").arg(string(contrastColumn)).
+		arg("--output_file").arg("analysis_method.txt").
+		saveFile("analysis_method.txt").
+		saveFileContent("analysis_method.txt").
+		printErrStreamToStdout().
+		cache(24 * 60 * 60 * 1000).
+		run()
+	
+	// Read the analysis method content
+	analysisMethod := replicatesEvaluation.getFileContent("analysis_method.txt")
+	
+	// Get the resolved cluster annotation
+	columns := args.columns
+	clusterAnnotation := columns.getColumn("clusters")
+	clusterSpec := clusterAnnotation.spec
+	
+	if is_undefined(clusterSpec.annotations) {
+		error("Cluster annotation is missing required metadata.")
+	}
+	
+	clusterTraceAnnotation := clusterSpec.annotations["pl7.app/trace"]
+	if is_undefined(clusterTraceAnnotation) {
+		error("Cluster annotation is missing trace information.")
+	}
+	
+	clusterTrace := json.decode(clusterTraceAnnotation || "[]")
+	
+	// Extract Cell Ranger block ID from trace
+	cellRangerBlockId := undefined
+	for step in clusterTrace {
+		if !is_undefined(step) && !is_undefined(step.type) && step.type == "milaboratories.cell-ranger" {
+			if !is_undefined(step.id) {
+				cellRangerBlockId = step.id
+				break
+			}
+		}
+	}
+	
+	if cellRangerBlockId == undefined {
+		error("Could not find Cell Ranger step in cluster annotation trace.")
+	}
+	
+	// Find the matching count matrix from the available ones
+	allCountMatrices := columns.getColumns("countMatrices")
+	rawCounts := undefined
+	
+	for countMatrix in allCountMatrices {
+		if !is_undefined(countMatrix.spec.domain) && 
+		   countMatrix.spec.domain["pl7.app/blockId"] == cellRangerBlockId {
+			rawCounts = countMatrix
+			break
+		}
+	}
+	
+	if is_undefined(rawCounts) {
+		error("No associated count matrix found.")
+	}
+	
+	// Get other resolved inputs
+	baseline := args.baseline
+	
+	// Extract input spec for later use
+	inputSpec := rawCounts.spec
+	
+	// Get column names from annotations
+	clusterColumn := undefined
+	if !is_undefined(clusterAnnotation) {
+		clusterColumn = clusterAnnotation.spec.annotations["pl7.app/label"]
+	}
+	
+	// Export data to CSV files for the analysis software
+	csvClusters := xsv.exportFrame([clusterAnnotation], "csv", {})
+	csvCovariates := xsv.exportFrame(covariates, "csv", {})
+	
+	// Run compositional analysis software
+	compositionalAnalysis := exec.builder().
+		software(assets.importSoftware("@platforma-open/milaboratories.compositional-analysis.sccoda:run-compositional-analysis")).
+		addFile("metadata.csv", csvCovariates).
+		addFile("clusters.csv", csvClusters).
+		arg("--metadata_csv").arg("metadata.csv").
+		arg("--cell_annotation_csv").arg("clusters.csv").
+		arg("--cell_type_column").arg(string(clusterColumn)).
+		arg("--contrast_column").arg(string(contrastColumn)).
+		arg("--baseline_level").arg(string(baseline)).
+		arg("--output_dir").arg(".").
+		saveFile("sccoda_results_summary.csv").
+		saveFile("relative_counts_for_barplot.csv").
+		saveFile("counts_for_boxplot.csv").
+		printErrStreamToStdout().
+		cache(24 * 60 * 60 * 1000).
+		run()
+	
+		// Import results back as PFrames - always include both columns
+	resultsImportParams := pfResultsConv.getColumns(blockId)
+	resultsPf := xsv.importFile(compositionalAnalysis.getFile("sccoda_results_summary.csv"), "csv", resultsImportParams)
+	
+	boxplotImportParams := pfBoxplotConv.getColumns(blockId, inputSpec)
+	boxplotPf := xsv.importFile(compositionalAnalysis.getFile("counts_for_boxplot.csv"), "csv", boxplotImportParams)
+	
+	stackedBarImportParams := pfStackedBarConv.getColumns(blockId, inputSpec)
+	stackedBarPf := xsv.importFile(compositionalAnalysis.getFile("relative_counts_for_barplot.csv"), "csv", stackedBarImportParams)
+	
+	return {
+		outputs: {
+			resultsPf: pframes.exportFrame(resultsPf),
+			boxplotPf: pframes.exportFrame(boxplotPf),
+			stackedBarPf: pframes.exportFrame(stackedBarPf),
+			analysisMethod: analysisMethod,
+			sccodaOutput: compositionalAnalysis.getStdoutStream()
+		},
+		exports: {}
+	}
+})
+
