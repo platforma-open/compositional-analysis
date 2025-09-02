@@ -8,19 +8,20 @@ packages:
   - test
 
 catalog:
-  "@platforma-sdk/model": ^1.42.0
-  "@platforma-sdk/ui-vue": ^1.42.0
-  "@platforma-sdk/workflow-tengo": ^4.14.1
-  "@platforma-sdk/block-tools": ^2.5.75
-  "@platforma-sdk/test": ^1.42.0
-  "@platforma-sdk/tengo-builder": ^2.1.13
-  "@platforma-sdk/package-builder": ^2.16.2
-  "@platforma-sdk/eslint-config": ^1.0.1
-  "@milaboratories/graph-maker": ^1.1.137
+  "@platforma-sdk/model": ^1.42.51
+  "@platforma-sdk/ui-vue": ^1.42.51
+  "@platforma-sdk/workflow-tengo": ^5.1.4
+  "@platforma-sdk/block-tools": ^2.6.2
+  "@platforma-sdk/test": ^1.42.51
+  "@platforma-sdk/tengo-builder": ^2.1.18
+  "@platforma-sdk/package-builder": ^3.2.4
+  "@platforma-sdk/eslint-config": ^1.1.0
+  "@platforma-sdk/blocks-deps-updater": ^2.0.0
+  "@milaboratories/graph-maker": ^1.1.154
 
   '@milaboratories/software-pframes-conv': ^2.2.2
   '@platforma-open/milaboratories.software-small-binaries': ^1.15.21
-  "@platforma-open/milaboratories.runenv-python-3": ^1.2.2
+  "@platforma-open/milaboratories.runenv-python-3": ^1.4.1
   
   "vue": ^3.5.12
   "vue-tsc": ^2.1.6
@@ -34,4 +35,3 @@ catalog:
   "@vitejs/plugin-vue": ^5.1.4
 
   "@changesets/cli": ^2.27.9
-  "js-yaml": ^4.1.0

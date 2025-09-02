@@ -4,12 +4,13 @@ import type {
   PColumnIdAndSpec,
   PFrameHandle,
   PlDataTableStateV2,
-  PlRef } from '@platforma-sdk/model';
+  PlRef,
+} from '@platforma-sdk/model';
 import {
   BlockModel,
-  createPlDataTableV2,
-  createPlDataTableStateV2,
   createPlDataTableSheet,
+  createPlDataTableStateV2,
+  createPlDataTableV2,
   getUniquePartitionKeys,
   isPColumn,
   isPColumnSpec,
@@ -239,6 +240,6 @@ export const model = BlockModel.create()
 
   .title((ctx) => ctx.uiState.title ?? 'Compositional Analysis')
 
-  .done();
+  .done(2);
 
 export type BlockOutputs = InferOutputsType<typeof model>;
