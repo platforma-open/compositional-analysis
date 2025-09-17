@@ -14,3 +14,4 @@ software/*.tgz
 .vscode/sftp.json
 .vscode/settings.json
 pkg-*.tgz
+*.tsbuildinfo
