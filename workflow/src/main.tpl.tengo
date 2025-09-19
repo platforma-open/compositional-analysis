@@ -10,8 +10,6 @@ pfResultsConv := import(":pf-results-conv")
 pfBoxplotConv := import(":pf-boxplot-conv")
 pfStackedBarConv := import(":pf-stacked-bar-conv")
 
-
-
 wf.prepare(func(args){
 	// Validate cluster annotation is provided
 	if is_undefined(args.clusterAnnotationRef) {
