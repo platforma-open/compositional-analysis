@@ -13,3 +13,5 @@ software/*.tgz
 .DS_Store
 .vscode/sftp.json
 .vscode/settings.json
+pkg-*.tgz
+*.tsbuildinfo
