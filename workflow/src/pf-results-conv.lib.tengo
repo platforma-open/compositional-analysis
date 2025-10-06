@@ -40,7 +40,8 @@ getColumns := func(blockId) {
         "valueType": "Double",
         "annotations": {
           "pl7.app/label": "q-value",
-          "pl7.app/table/orderPriority": "20"
+          "pl7.app/table/orderPriority": "20",
+          "pl7.app/description": "This value represents the model's confidence that the change you see is a real biological effect and not just random noise. A value greater than 0.95 (or 95%) is typically considered a statistically credible or significant change."
         }
       }
     }
