@@ -1,5 +1,14 @@
 # @platforma-open/milaboratories.compositional-analysis.replicates
 
+## 1.1.2
+
+### Patch Changes
+
+- 8c2c5c2: technical release
+- 372dfdd: technical release
+- 878db6e: technical release
+- 723b20a: technical release
+
 ## 1.1.1
 
 ### Patch Changes
