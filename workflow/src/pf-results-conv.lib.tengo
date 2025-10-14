@@ -12,7 +12,22 @@ getColumns := func(blockId) {
         "valueType": "Double",
         "annotations": {
           "pl7.app/label": "Log2FC",
-          "pl7.app/table/orderPriority": "60"
+          "pl7.app/table/orderPriority": "80",
+          "pl7.app/description": "This value tells you the direct change in a cell group's abundance. A positive value means the cell group's percentage of the total population went up; a negative value means it went down."
+        }
+      }
+    },
+    {
+      "column": "sccoda_log2_fold_change",
+      "id": "relativelog2foldchange",
+      "allowNA": true,
+      "spec": {
+        "name": "pl7.app/rna-seq/relativelog2foldchange",
+        "valueType": "Double",
+        "annotations": {
+          "pl7.app/label": "Relative Log2FC",
+          "pl7.app/table/orderPriority": "60",
+          "pl7.app/description": "This is a statistical value that shows how a cell group's proportion changed relative to a stable reference cell group. It helps determine if a change is statistically significant by accounting for the fact that all cell proportions are linked. The q-value is directly calculated from this number."
         }
       }
     },
@@ -25,7 +40,8 @@ getColumns := func(blockId) {
         "valueType": "Double",
         "annotations": {
           "pl7.app/label": "q-value",
-          "pl7.app/table/orderPriority": "20"
+          "pl7.app/table/orderPriority": "20",
+          "pl7.app/description": "This value represents the model's confidence that the change you see is a real biological effect and not just random noise. A value greater than 0.95 (or 95%) is typically considered a statistically credible or significant change."
         }
       }
     }

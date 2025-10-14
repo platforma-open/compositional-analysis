@@ -44,7 +44,8 @@ def calculate_fold_changes(count_table, groups, baseline_group):
                 "group": group,
                 "cell_type": cell_type,
                 "log2_fold_change": log2_fc,
-                "q_value": np.nan,
+                "sccoda_log2_fold_change": np.nan,  # Empty string for fallback mode
+                "q_value": np.nan,  # Empty string for fallback mode
                 "credible": False
             })
     return fold_changes
@@ -87,7 +88,35 @@ def main():
     if enough_replicates:
         print("Running scCODA compositional analysis...\n")
         formula = f'C({args.contrast_column}, Treatment(reference="{args.baseline_level}"))'
-        ca = comp_ana.CompositionalAnalysis(adata, formula=formula)
+        
+        # New robust logic to select reference cell type
+        print("Automatically selecting reference cell type...")
+
+        # Calculate total cells and abundance of each cell type
+        total_cells = count_table.sum().sum()
+        cell_type_abundances = count_table.sum()
+        
+        # Define an abundance threshold (e.g., 1% of total cells)
+        abundance_threshold = 0.01
+        
+        # Filter for abundant cell types
+        abundant_cell_types = cell_type_abundances[cell_type_abundances / total_cells > abundance_threshold].index
+        
+        if len(abundant_cell_types) == 0:
+            raise ValueError(f"No cell types found with abundance > {abundance_threshold*100}%. Cannot select a stable reference.")
+        
+        print(f"Found {len(abundant_cell_types)} cell types with abundance > {abundance_threshold*100}%")
+
+        # Calculate variances for abundant cell types only and select the one with the lowest variance
+        variances = count_table[abundant_cell_types].var()
+        selected_reference = variances.idxmin()
+        print(f"✅ Selected '{selected_reference}' as reference cell type.")
+        
+        ca = comp_ana.CompositionalAnalysis(
+            adata, 
+            formula=formula, 
+            reference_cell_type=selected_reference
+        )
         results = ca.sample_hmc()
         eff_df = results.effect_df
         
@@ -104,41 +133,49 @@ def main():
             else:
                 simple_group = str(group)
             
-            log2fc = row["log2-fold change"]
+            sccoda_log2fc = row["log2-fold change"]
             inclusion_prob = row.get("Inclusion probability", np.nan)
             # Consider significant if inclusion probability > 0.95 (95% credible)
             credible = inclusion_prob > 0.95 if not np.isnan(inclusion_prob) else False
             
-            # BUG FIX: If scCODA's log2-fold change is 0, calculate manually
-            if log2fc == 0.0:
+            # Always calculate log2-fold change manually from proportions for interpretability
+            test_group = None
+            if simple_group != baseline:
+                test_group = simple_group
+            
+            if test_group:
+                # Calculate manual fold change
+                control_samples = metadata[metadata[contrast_var] == baseline]['Sample'].tolist()
+                test_samples = metadata[metadata[contrast_var] == test_group]['Sample'].tolist()
                 
-                # Get the test group name from the simple group name
-                test_group = None
-                if simple_group != baseline:
-                    test_group = simple_group
+                # Get counts for this cell type (convert to int if needed)
+                cell_type_col = int(cell_type) if str(cell_type).isdigit() else cell_type
+                control_total = count_table.loc[control_samples, cell_type_col].sum()
+                control_cells = count_table.loc[control_samples].sum().sum()
+                test_total = count_table.loc[test_samples, cell_type_col].sum()
+                test_cells = count_table.loc[test_samples].sum().sum()
                 
-                if test_group:
-                    # Calculate manual fold change
-                    control_samples = metadata[metadata[contrast_var] == baseline]['Sample'].tolist()
-                    test_samples = metadata[metadata[contrast_var] == test_group]['Sample'].tolist()
-                    
-                    # Get counts for this cell type (convert to int if needed)
-                    cell_type_col = int(cell_type) if str(cell_type).isdigit() else cell_type
-                    control_total = count_table.loc[control_samples, cell_type_col].sum()
-                    control_cells = count_table.loc[control_samples].sum().sum()
-                    test_total = count_table.loc[test_samples, cell_type_col].sum()
-                    test_cells = count_table.loc[test_samples].sum().sum()
-                    
-                    # Calculate proportions and log2 fold change
-                    control_prop = control_total / control_cells
-                    test_prop = test_total / test_cells
-                    pseudocount = 0.5
-                    log2fc = np.log2((test_prop + pseudocount/test_cells) / (control_prop + pseudocount/control_cells))
+                # Calculate proportions and log2 fold change
+                control_prop = control_total / control_cells if control_cells > 0 else 0
+                test_prop = test_total / test_cells if test_cells > 0 else 0
+                pseudocount = 0.5
+                
+                adj_control_prop = control_prop + (pseudocount / control_cells if control_cells > 0 else 0)
+                adj_test_prop = test_prop + (pseudocount / test_cells if test_cells > 0 else 0)
+
+                # Avoid division by zero if a group has no cells of a certain type
+                if adj_control_prop == 0:
+                    log2fc = np.log2(adj_test_prop / 1e-9) # Use a small denominator
+                else:
+                    log2fc = np.log2(adj_test_prop / adj_control_prop)
+            else:
+                log2fc = 0.0 # Fallback for baseline group
             
             result_rows.append({
                 "group": simple_group,
                 "cell_type": cell_type,
                 "log2_fold_change": log2fc,
+                "sccoda_log2_fold_change": sccoda_log2fc,
                 "q_value": inclusion_prob,  # Use inclusion probability as scCODA's significance measure
                 "credible": credible
             })

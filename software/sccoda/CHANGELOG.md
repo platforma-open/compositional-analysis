@@ -1,5 +1,17 @@
 # @platforma-open/milaboratories.compositional-analysis.sccoda
 
+## 1.3.0
+
+### Minor Changes
+
+- f2217a7: Fixed outputs bug created by last update when not enough replicates present
+
+## 1.2.0
+
+### Minor Changes
+
+- ea22f1e: Improved results interpretation when scCODA is run.
+
 ## 1.1.1
 
 ### Patch Changes

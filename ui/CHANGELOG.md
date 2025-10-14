@@ -1,5 +1,18 @@
 # @platforma-open/milaboratories.compositional-analysis.ui
 
+## 1.2.1
+
+### Patch Changes
+
+- Updated dependencies [f2217a7]
+  - @platforma-open/milaboratories.compositional-analysis.model@1.2.0
+
+## 1.2.0
+
+### Minor Changes
+
+- ea22f1e: Improved results interpretation when scCODA is run.
+
 ## 1.1.1
 
 ### Patch Changes

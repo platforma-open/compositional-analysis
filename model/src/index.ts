@@ -114,7 +114,7 @@ export const model = BlockModel.create()
 
     // Filter the input columns before passing to createPlDataTableV2
     const filteredPCols = analysisMethod === 'foldChange'
-      ? pCols.filter((col) => col.spec.name !== 'pl7.app/rna-seq/qvalue')
+      ? pCols.filter((col) => col.spec.name !== 'pl7.app/rna-seq/qvalue' && col.spec.name !== 'pl7.app/rna-seq/relativelog2foldchange')
       : pCols;
 
     if (filteredPCols.length === 0) return undefined;
