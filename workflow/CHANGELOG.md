@@ -1,5 +1,16 @@
 # @platforma-open/milaboratories.compositional-analysis.workflow
 
+## 1.2.0
+
+### Minor Changes
+
+- ea22f1e: Improved results interpretation when scCODA is run.
+
+### Patch Changes
+
+- Updated dependencies [ea22f1e]
+  - @platforma-open/milaboratories.compositional-analysis.sccoda@1.2.0
+
 ## 1.1.1
 
 ### Patch Changes
