@@ -44,7 +44,8 @@ def calculate_fold_changes(count_table, groups, baseline_group):
                 "group": group,
                 "cell_type": cell_type,
                 "log2_fold_change": log2_fc,
-                "q_value": np.nan,
+                "sccoda_log2_fold_change": np.nan,  # Empty string for fallback mode
+                "q_value": np.nan,  # Empty string for fallback mode
                 "credible": False
             })
     return fold_changes
