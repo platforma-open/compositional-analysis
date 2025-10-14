@@ -63,7 +63,7 @@ const baselineOptions = computed(() => {
       <PlBtnGhost @click.stop="() => sccodaLogOpen = true">
         Logs
         <template #append>
-          <PlMaskIcon24 name="progress" />
+          <PlMaskIcon24 name="file-logs" />
         </template>
       </PlBtnGhost>
       <PlBtnGhost @click.stop="() => data.settingsOpen = true">
