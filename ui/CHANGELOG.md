@@ -1,5 +1,12 @@
 # @platforma-open/milaboratories.compositional-analysis.ui
 
+## 1.2.1
+
+### Patch Changes
+
+- Updated dependencies [f2217a7]
+  - @platforma-open/milaboratories.compositional-analysis.model@1.2.0
+
 ## 1.2.0
 
 ### Minor Changes
