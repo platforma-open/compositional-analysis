@@ -16,34 +16,29 @@ const defaultOptions = computed((): PredefinedGraphOption<'discrete'>[] | undefi
     }
 
     const barplotPCols = app.model.outputs.barplotPCols;
-    
+
     // Find required columns
     const abundanceCol = barplotPCols.find((col) => col.spec.name === 'pl7.app/rna-seq/abundance');
 
     // Dynamically resolve which metadata column matches the selected contrast factor reference
     const contrastFactorCol = (() => {
-      if (!app.model.args.contrastFactor) return undefined;
+      const ref = app.model.args.contrastFactor;
+      if (!ref) return undefined;
 
-      const refName = app.model.args.contrastFactor.name;
-      const refHash = refName.split('.')[1]; // Extract hash from "metadata.GV3QZB5LVZYYGRJMHWSD3DNH"
-
-      if (refHash) {
-        // Find the metadata column that contains the reference hash in its JSON representation
-        const foundCol = barplotPCols.find((col) => {
-          if (col.spec.name !== 'pl7.app/metadata') return false;
-
-          // Check if this column's JSON contains the reference hash
-          const colStr = JSON.stringify(col);
-          return colStr.includes(refHash) || colStr.includes(refName);
-        });
-
-        if (foundCol) {
-          return foundCol;
+      const col = barplotPCols.find((c) => {
+        if (!c.columnId || typeof c.columnId !== 'string') return false;
+        try {
+          const colRef = JSON.parse(c.columnId);
+          return colRef.name === ref.name && colRef.blockId === ref.blockId;
+        } catch {
+          return false;
         }
-      }
+      });
 
-      // Fallback to first metadata column if no match found
-      return barplotPCols.find((col) => col.spec.name === 'pl7.app/metadata');
+      return (
+        col
+        ?? barplotPCols.find((c) => c.spec.name === 'pl7.app/metadata')
+      );
     })();
 
     // Only return defaults if required columns are found and abundance has axes
