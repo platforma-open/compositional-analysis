@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.compositional-analysis.ui
 
+## 1.2.3
+
+### Patch Changes
+
+- 8959c8e: Workj with import-scrna blocks
+
 ## 1.2.2
 
 ### Patch Changes

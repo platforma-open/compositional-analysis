@@ -1,5 +1,12 @@
 # @platforma-open/milaboratories.compositional-analysis.workflow
 
+## 1.2.3
+
+### Patch Changes
+
+- de0a744: contemplate import-scrna block inputs
+- 8959c8e: Workj with import-scrna blocks
+
 ## 1.2.2
 
 ### Patch Changes

@@ -1,5 +1,14 @@
 # @platforma-open/milaboratories.compositional-analysis
 
+## 1.1.5
+
+### Patch Changes
+
+- Updated dependencies [de0a744]
+- Updated dependencies [8959c8e]
+  - @platforma-open/milaboratories.compositional-analysis.workflow@1.2.3
+  - @platforma-open/milaboratories.compositional-analysis.ui@1.2.3
+
 ## 1.1.4
 
 ### Patch Changes
