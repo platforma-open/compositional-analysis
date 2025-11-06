@@ -81,7 +81,7 @@ getColumns := func(blockId) {
       }
       ],
     "columns": columns,
-    "storageFormat": "Binary",
+    "storageFormat": "Parquet",
     "partitionKeyLength": 1
   }
 }
