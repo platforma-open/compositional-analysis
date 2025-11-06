@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.compositional-analysis.workflow
 
+## 1.2.4
+
+### Patch Changes
+
+- c2844f3: Update to Parquet
+
 ## 1.2.3
 
 ### Patch Changes
