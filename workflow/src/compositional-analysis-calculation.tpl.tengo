@@ -1,0 +1,50 @@
+self := import("@platforma-sdk/workflow-tengo:tpl")
+exec := import("@platforma-sdk/workflow-tengo:exec")
+assets := import("@platforma-sdk/workflow-tengo:assets")
+
+self.defineOutputs("resultsCsv", "boxplotCsv", "stackedBarCsv", "stdout")
+
+self.body(func(args) {
+    // Input parameters
+    csvCovariates := args.csvCovariates
+    csvClusters := args.csvClusters
+    clusterColumn := args.clusterColumn
+    contrastColumn := args.contrastColumn
+    baseline := args.baseline
+    mem := args.mem
+    cpu := args.cpu
+
+    // Compositional analysis software execution
+    compositionalAnalysis := exec.builder().
+        software(assets.importSoftware("@platforma-open/milaboratories.compositional-analysis.sccoda:run-compositional-analysis")).
+        mem(mem).
+        cpu(cpu).
+        addFile("metadata.csv", csvCovariates).
+        addFile("clusters.csv", csvClusters).
+        arg("--metadata_csv").arg("metadata.csv").
+        arg("--cell_annotation_csv").arg("clusters.csv").
+        arg("--cell_type_column").arg(string(clusterColumn)).
+        arg("--contrast_column").arg(string(contrastColumn)).
+        arg("--baseline_level").arg(string(baseline)).
+        arg("--output_dir").arg(".").
+        saveFile("sccoda_results_summary.csv").
+        saveFile("relative_counts_for_barplot.csv").
+        saveFile("counts_for_boxplot.csv").
+        saveStdoutStream().
+        cache(24 * 60 * 60 * 1000).
+        run()
+
+    // Get result files
+    resultsCsv := compositionalAnalysis.getFile("sccoda_results_summary.csv")
+    boxplotCsv := compositionalAnalysis.getFile("counts_for_boxplot.csv")
+    stackedBarCsv := compositionalAnalysis.getFile("relative_counts_for_barplot.csv")
+    stdout := compositionalAnalysis.getStdoutStream()
+
+    return {
+        resultsCsv: resultsCsv,
+        boxplotCsv: boxplotCsv,
+        stackedBarCsv: stackedBarCsv,
+        stdout: stdout
+    }
+})
+

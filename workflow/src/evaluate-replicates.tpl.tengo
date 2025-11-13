@@ -1,0 +1,31 @@
+self := import("@platforma-sdk/workflow-tengo:tpl")
+exec := import("@platforma-sdk/workflow-tengo:exec")
+assets := import("@platforma-sdk/workflow-tengo:assets")
+
+self.defineOutputs("analysisMethod")
+
+self.body(func(args) {
+    // Input parameters
+    csvCovariates := args.csvCovariates
+    contrastColumn := args.contrastColumn
+
+    // Replicates evaluation software execution
+    replicatesEvaluation := exec.builder().
+        software(assets.importSoftware("@platforma-open/milaboratories.compositional-analysis.replicates:evaluate-replicates")).
+        addFile("metadata.csv", csvCovariates).
+        arg("--metadata_csv").arg("metadata.csv").
+        arg("--contrast_column").arg(string(contrastColumn)).
+        arg("--output_file").arg("analysis_method.txt").
+        saveFile("analysis_method.txt").
+        saveFileContent("analysis_method.txt").
+        cache(24 * 60 * 60 * 1000).
+        run()
+
+    // Get analysis method
+    analysisMethod := replicatesEvaluation.getFileContent("analysis_method.txt")
+
+    return {
+        analysisMethod: analysisMethod
+    }
+})
+

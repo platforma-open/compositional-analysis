@@ -1,6 +1,6 @@
 wf := import("@platforma-sdk/workflow-tengo:workflow")
-exec := import("@platforma-sdk/workflow-tengo:exec")
 assets := import("@platforma-sdk/workflow-tengo:assets")
+render := import("@platforma-sdk/workflow-tengo:render")
 xsv := import("@platforma-sdk/workflow-tengo:pframes.xsv")
 pframes := import("@platforma-sdk/workflow-tengo:pframes")
 pSpec := import("@platforma-sdk/workflow-tengo:pframes.spec")
@@ -9,6 +9,8 @@ json := import("json")
 pfResultsConv := import(":pf-results-conv")
 pfBoxplotConv := import(":pf-boxplot-conv")
 pfStackedBarConv := import(":pf-stacked-bar-conv")
+evaluateReplicatesTpl := assets.importTemplate(":evaluate-replicates")
+compositionalAnalysisTpl := assets.importTemplate(":compositional-analysis-calculation")
 
 wf.prepare(func(args){
 	// Validate cluster annotation is provided
@@ -77,21 +79,14 @@ wf.body(func(args) {
 	// Export covariates data to CSV file for the replicates analysis
 	csvCovariatesForReplicates := xsv.exportFrame(covariates, "csv", {})
 	
-	// Run replicates evaluation software to determine analysis method
-	replicatesEvaluation := exec.builder().
-		software(assets.importSoftware("@platforma-open/milaboratories.compositional-analysis.replicates:evaluate-replicates")).
-		addFile("metadata.csv", csvCovariatesForReplicates).
-		arg("--metadata_csv").arg("metadata.csv").
-		arg("--contrast_column").arg(string(contrastColumn)).
-		arg("--output_file").arg("analysis_method.txt").
-		saveFile("analysis_method.txt").
-		saveFileContent("analysis_method.txt").
-		printErrStreamToStdout().
-		cache(24 * 60 * 60 * 1000).
-		run()
+	// Run replicates evaluation to determine analysis method
+	replicatesEvaluationRender := render.create(evaluateReplicatesTpl, {
+		csvCovariates: csvCovariatesForReplicates,
+		contrastColumn: contrastColumn
+	})
 	
-	// Read the analysis method content
-	analysisMethod := replicatesEvaluation.getFileContent("analysis_method.txt")
+	// Get the analysis method
+	analysisMethod := replicatesEvaluationRender.output("analysisMethod")
 	
 	// Get the resolved cluster annotation
 	columns := args.columns
@@ -158,33 +153,47 @@ wf.body(func(args) {
 	csvClusters := xsv.exportFrame([clusterAnnotation], "csv", {})
 	csvCovariates := xsv.exportFrame(covariates, "csv", {})
 	
-	// Run compositional analysis software
-	compositionalAnalysis := exec.builder().
-		software(assets.importSoftware("@platforma-open/milaboratories.compositional-analysis.sccoda:run-compositional-analysis")).
-		addFile("metadata.csv", csvCovariates).
-		addFile("clusters.csv", csvClusters).
-		arg("--metadata_csv").arg("metadata.csv").
-		arg("--cell_annotation_csv").arg("clusters.csv").
-		arg("--cell_type_column").arg(string(clusterColumn)).
-		arg("--contrast_column").arg(string(contrastColumn)).
-		arg("--baseline_level").arg(string(baseline)).
-		arg("--output_dir").arg(".").
-		saveFile("sccoda_results_summary.csv").
-		saveFile("relative_counts_for_barplot.csv").
-		saveFile("counts_for_boxplot.csv").
-		printErrStreamToStdout().
-		cache(24 * 60 * 60 * 1000).
-		run()
+	// Run compositional analysis
+	compositionalAnalysisRender := render.create(compositionalAnalysisTpl, {
+		csvCovariates: csvCovariates,
+		csvClusters: csvClusters,
+		clusterColumn: clusterColumn,
+		contrastColumn: contrastColumn,
+		baseline: baseline,
+		mem: "32GiB",
+		cpu: 1
+	})
 	
-		// Import results back as PFrames - always include both columns
+	// Import results back as PFrames - always include both columns
 	resultsImportParams := pfResultsConv.getColumns(blockId)
-	resultsPf := xsv.importFile(compositionalAnalysis.getFile("sccoda_results_summary.csv"), "csv", resultsImportParams)
+	resultsPf := xsv.importFile(compositionalAnalysisRender.output("resultsCsv"), "csv", resultsImportParams)
 	
 	boxplotImportParams := pfBoxplotConv.getColumns(blockId, inputSpec)
-	boxplotPf := xsv.importFile(compositionalAnalysis.getFile("counts_for_boxplot.csv"), "csv", boxplotImportParams)
+	boxplotPf := xsv.importFile(compositionalAnalysisRender.output("boxplotCsv"), "csv", boxplotImportParams)
 	
 	stackedBarImportParams := pfStackedBarConv.getColumns(blockId, inputSpec)
-	stackedBarPf := xsv.importFile(compositionalAnalysis.getFile("relative_counts_for_barplot.csv"), "csv", stackedBarImportParams)
+	stackedBarPf := xsv.importFile(compositionalAnalysisRender.output("stackedBarCsv"), "csv", stackedBarImportParams)
+	
+	// Create informative label with baseline parameter
+	baselineStr := string(baseline)
+	traceLabel := "Compositional Analysis (baseline:" + baselineStr + ")"
+	
+	trace := pSpec.makeTrace(inputSpec, { type: "milaboratories.compositional-analysis", importance: 65, label: traceLabel })
+	
+	exports := {
+		log2foldchange: {
+			spec: trace.inject(resultsPf["log2foldchange.spec"]),
+			data: resultsPf["log2foldchange.data"]
+		},
+		relativelog2foldchange: {
+			spec: trace.inject(resultsPf["relativelog2foldchange.spec"]),
+			data: resultsPf["relativelog2foldchange.data"]
+		},
+		qvalue: {
+			spec: trace.inject(resultsPf["qvalue.spec"]),
+			data: resultsPf["qvalue.data"]
+		}
+	}
 	
 	return {
 		outputs: {
@@ -192,9 +201,9 @@ wf.body(func(args) {
 			boxplotPf: pframes.exportFrame(boxplotPf),
 			stackedBarPf: pframes.exportFrame(stackedBarPf),
 			analysisMethod: analysisMethod,
-			sccodaOutput: compositionalAnalysis.getStdoutStream()
+			sccodaOutput: compositionalAnalysisRender.output("stdout")
 		},
-		exports: {}
+		exports: exports
 	}
 })
 
