@@ -1,5 +1,16 @@
 # @platforma-open/milaboratories.compositional-analysis
 
+## 1.2.0
+
+### Minor Changes
+
+- 0006597: Enable deduplication, add exports and update metadata
+
+### Patch Changes
+
+- Updated dependencies [0006597]
+  - @platforma-open/milaboratories.compositional-analysis.workflow@1.3.0
+
 ## 1.1.6
 
 ### Patch Changes

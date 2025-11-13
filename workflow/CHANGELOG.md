@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.compositional-analysis.workflow
 
+## 1.3.0
+
+### Minor Changes
+
+- 0006597: Enable deduplication, add exports and update metadata
+
 ## 1.2.4
 
 ### Patch Changes
