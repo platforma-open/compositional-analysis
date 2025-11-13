@@ -27,9 +27,10 @@
     "meta": {
       "title": "Compositional Analysis",
       "logo": "file:../logos/block-logo.png",
-      "url": "https://github.com/platforma-open/milaboratories.compositional-analysis",
+      "url": "https://github.com/platforma-open/compositional-analysis",
+      "docs": "https://docs.platforma.bio/guides/sc-rna-seq-analysis/compositional-analysis/",
       "support": "mailto:support@milaboratories.com",
-      "description": "Analyzes how proportions of different cell groups change between experimental conditions.",
+      "description": "Analyzes changes in cell type proportions across conditions using scCODA Bayesian analysis or fold change calculations.",
       "longDescription": "file:../docs/description.md",
       "changelog": "file:../CHANGELOG.md",
       "tags": [
