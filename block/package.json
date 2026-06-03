@@ -36,7 +36,8 @@
       "tags": [
         "RNA-seq",
         "downstream",
-        "single-cell"
+        "single-cell",
+        "gpu"
       ],
       "organization": {
         "name": "MiLaboratories Inc",
