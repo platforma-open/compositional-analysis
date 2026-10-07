@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import type { PredefinedGraphOption } from '@milaboratories/graph-maker';
-import { GraphMaker } from '@milaboratories/graph-maker';
-import '@milaboratories/graph-maker/styles';
-import { PlBlockPage } from '@platforma-sdk/ui-vue';
-import { computed } from 'vue';
-import { useApp } from '../app';
+import type { PredefinedGraphOption } from "@milaboratories/graph-maker";
+import { GraphMaker } from "@milaboratories/graph-maker";
+import "@milaboratories/graph-maker/styles";
+import { PlBlockPage } from "@platforma-sdk/ui-vue";
+import { computed } from "vue";
+import { useApp } from "../app";
 
 const app = useApp();
 
-const defaultOptions = computed((): PredefinedGraphOption<'discrete'>[] | undefined => {
+const defaultOptions = computed((): PredefinedGraphOption<"discrete">[] | undefined => {
   try {
     // Return undefined if data not ready yet
     if (!app.model.outputs.barplotPCols || !app.model.args.contrastFactor) {
@@ -18,7 +18,7 @@ const defaultOptions = computed((): PredefinedGraphOption<'discrete'>[] | undefi
     const barplotPCols = app.model.outputs.barplotPCols;
 
     // Find required columns
-    const abundanceCol = barplotPCols.find((col) => col.spec.name === 'pl7.app/rna-seq/abundance');
+    const abundanceCol = barplotPCols.find((col) => col.spec.name === "pl7.app/rna-seq/abundance");
 
     // Dynamically resolve which metadata column matches the selected contrast factor reference
     const contrastFactorCol = (() => {
@@ -26,7 +26,7 @@ const defaultOptions = computed((): PredefinedGraphOption<'discrete'>[] | undefi
       if (!ref) return undefined;
 
       const col = barplotPCols.find((c) => {
-        if (!c.columnId || typeof c.columnId !== 'string') return false;
+        if (!c.columnId || typeof c.columnId !== "string") return false;
         try {
           const colRef = JSON.parse(c.columnId);
           return colRef.name === ref.name && colRef.blockId === ref.blockId;
@@ -35,28 +35,30 @@ const defaultOptions = computed((): PredefinedGraphOption<'discrete'>[] | undefi
         }
       });
 
-      return (
-        col
-        ?? barplotPCols.find((c) => c.spec.name === 'pl7.app/metadata')
-      );
+      return col ?? barplotPCols.find((c) => c.spec.name === "pl7.app/metadata");
     })();
 
     // Only return defaults if required columns are found and abundance has axes
-    if (!abundanceCol || !contrastFactorCol || !abundanceCol.spec.axesSpec || abundanceCol.spec.axesSpec.length < 2) {
+    if (
+      !abundanceCol ||
+      !contrastFactorCol ||
+      !abundanceCol.spec.axesSpec ||
+      abundanceCol.spec.axesSpec.length < 2
+    ) {
       return undefined;
     }
 
-    const defaults: PredefinedGraphOption<'discrete'>[] = [
+    const defaults: PredefinedGraphOption<"discrete">[] = [
       {
-        inputName: 'y',
+        inputName: "y",
         selectedSource: abundanceCol.spec,
       },
       {
-        inputName: 'primaryGrouping',
+        inputName: "primaryGrouping",
         selectedSource: contrastFactorCol.spec,
       },
       {
-        inputName: 'secondaryGrouping',
+        inputName: "secondaryGrouping",
         selectedSource: abundanceCol.spec.axesSpec[1], // cellGroup axis from abundance column
       },
     ];
