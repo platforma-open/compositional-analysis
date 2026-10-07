@@ -76,12 +76,19 @@ wf.body(func(args) {
 		contrastColumn = contrastFactor.spec.annotations["pl7.app/label"]
 	}
 	
-	// Export covariates data to CSV file for the replicates analysis
-	csvCovariatesForReplicates := xsv.exportFrame(covariates, "csv", {})
+	// Memory and CPU for every conversion in the block. The cluster annotation
+	// has one row per cell; the covariates and the result tables are much smaller.
+	// The Python tools run in the sccoda runenv, which ships no Parquet reader,
+	// so the exchange stays CSV.
+	convMem := "16GiB" // @TODO: set based on the size of the input
+	convCpu := 1 // @TODO: set based on the size of the input
+
+	// Export covariates data to CSV file, for the replicates evaluation and the analysis
+	csvCovariates := xsv.exportFrame(covariates, "csv", {}, { mem: convMem, cpu: convCpu })
 	
 	// Run replicates evaluation to determine analysis method
 	replicatesEvaluationRender := render.create(evaluateReplicatesTpl, {
-		csvCovariates: csvCovariatesForReplicates,
+		csvCovariates: csvCovariates,
 		contrastColumn: contrastColumn
 	})
 	
@@ -149,9 +156,8 @@ wf.body(func(args) {
 		clusterColumn = clusterAnnotation.spec.annotations["pl7.app/label"]
 	}
 	
-	// Export data to CSV files for the analysis software
-	csvClusters := xsv.exportFrame([clusterAnnotation], "csv", {})
-	csvCovariates := xsv.exportFrame(covariates, "csv", {})
+	// Export the cluster annotation to CSV file for the analysis software
+	csvClusters := xsv.exportFrame([clusterAnnotation], "csv", {}, { mem: convMem, cpu: convCpu })
 	
 	// Run compositional analysis
 	compositionalAnalysisRender := render.create(compositionalAnalysisTpl, {
@@ -166,13 +172,13 @@ wf.body(func(args) {
 	
 	// Import results back as PFrames - always include both columns
 	resultsImportParams := pfResultsConv.getColumns(blockId)
-	resultsPf := xsv.importFile(compositionalAnalysisRender.output("resultsCsv"), "csv", resultsImportParams)
+	resultsPf := xsv.importFile(compositionalAnalysisRender.output("resultsCsv"), "csv", resultsImportParams, { mem: convMem, cpu: convCpu })
 	
 	boxplotImportParams := pfBoxplotConv.getColumns(blockId, inputSpec)
-	boxplotPf := xsv.importFile(compositionalAnalysisRender.output("boxplotCsv"), "csv", boxplotImportParams)
+	boxplotPf := xsv.importFile(compositionalAnalysisRender.output("boxplotCsv"), "csv", boxplotImportParams, { mem: convMem, cpu: convCpu })
 	
 	stackedBarImportParams := pfStackedBarConv.getColumns(blockId, inputSpec)
-	stackedBarPf := xsv.importFile(compositionalAnalysisRender.output("stackedBarCsv"), "csv", stackedBarImportParams)
+	stackedBarPf := xsv.importFile(compositionalAnalysisRender.output("stackedBarCsv"), "csv", stackedBarImportParams, { mem: convMem, cpu: convCpu })
 	
 	// Create informative label with baseline parameter
 	baselineStr := string(baseline)
