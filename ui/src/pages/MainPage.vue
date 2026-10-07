@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import "@milaboratories/graph-maker/styles";
 import type { PlRef } from "@platforma-sdk/model";
 import { plRefsEqual } from "@platforma-sdk/model";
 import {
@@ -23,26 +22,26 @@ const app = useApp();
 const sccodaLogOpen = ref(false);
 
 const tableSettings = usePlDataTableSettingsV2({
-  model: () => app.model.outputs.resultsPt?.table,
-  sheets: () => app.model.outputs.resultsPt?.sheets,
+  model: () => app.model.outputs.resultsPt,
+  sheets: () => app.model.outputs.resultsSheets,
 });
 
 const data = reactive<{
   settingsOpen: boolean;
 }>({
-  settingsOpen: app.model.args.clusterAnnotationRef === undefined,
+  settingsOpen: app.model.data.clusterAnnotationRef === undefined,
 });
 
 // Update page title by cluster annotation
 function setClusterAnnotation(clusterAnnotationRef?: PlRef) {
-  app.model.args.clusterAnnotationRef = clusterAnnotationRef;
+  app.model.data.clusterAnnotationRef = clusterAnnotationRef;
   if (clusterAnnotationRef) {
     const annotationLabel = app.model.outputs.clusterAnnotationOptions?.find((o) =>
       plRefsEqual(o.ref, clusterAnnotationRef),
     )?.label;
-    if (annotationLabel) app.model.ui.title = "Compositional Analysis - " + annotationLabel;
+    if (annotationLabel) app.model.data.title = "Compositional Analysis - " + annotationLabel;
   } else {
-    app.model.ui.title = undefined;
+    app.model.data.title = undefined;
   }
 }
 
@@ -56,7 +55,7 @@ const covariateOptions = computed(() => {
 });
 
 const contrastFactorOptions = computed(() => {
-  return app.model.args.covariateRefs.map((ref) => ({
+  return app.model.data.covariateRefs.map((ref) => ({
     value: ref,
     label: covariateOptions.value.find((m) => m.value.name === ref.name)?.label ?? "",
   }));
@@ -88,14 +87,14 @@ const baselineOptions = computed(() => {
       </PlBtnGhost>
     </template>
     <PlAgDataTableV2
-      v-model="app.model.ui.tableState"
+      v-model="app.model.data.tableState"
       :settings="tableSettings"
       show-export-button
     />
     <PlSlideModal v-model="data.settingsOpen">
       <template #title>Settings</template>
       <PlDropdownRef
-        :model-value="app.model.args.clusterAnnotationRef"
+        :model-value="app.model.data.clusterAnnotationRef"
         :options="app.model.outputs.clusterAnnotationOptions"
         label="Cell annotation"
         required
@@ -115,7 +114,7 @@ const baselineOptions = computed(() => {
       </PlDropdownRef>
 
       <PlDropdownMulti
-        v-model="app.model.args.covariateRefs"
+        v-model="app.model.data.covariateRefs"
         :options="covariateOptions"
         label="Covariates"
         required
@@ -136,7 +135,7 @@ const baselineOptions = computed(() => {
       </PlDropdownMulti>
 
       <PlDropdown
-        v-model="app.model.args.contrastFactor"
+        v-model="app.model.data.contrastFactor"
         :options="contrastFactorOptions"
         label="Contrast factor"
         required
@@ -155,7 +154,7 @@ const baselineOptions = computed(() => {
       </PlDropdown>
 
       <PlDropdown
-        v-model="app.model.args.baseline"
+        v-model="app.model.data.baseline"
         :options="baselineOptions"
         label="Baseline condition"
         required

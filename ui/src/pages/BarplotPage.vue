@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { PredefinedGraphOption } from "@milaboratories/graph-maker";
 import { GraphMaker } from "@milaboratories/graph-maker";
-import "@milaboratories/graph-maker/styles";
 import { PlBlockPage } from "@platforma-sdk/ui-vue";
 import { computed } from "vue";
 import { useApp } from "../app";
@@ -11,7 +10,7 @@ const app = useApp();
 const defaultOptions = computed((): PredefinedGraphOption<"discrete">[] | undefined => {
   try {
     // Return undefined if data not ready yet
-    if (!app.model.outputs.barplotPCols || !app.model.args.contrastFactor) {
+    if (!app.model.outputs.barplotPCols || !app.model.data.contrastFactor) {
       return undefined;
     }
 
@@ -22,7 +21,7 @@ const defaultOptions = computed((): PredefinedGraphOption<"discrete">[] | undefi
 
     // Dynamically resolve which metadata column matches the selected contrast factor reference
     const contrastFactorCol = (() => {
-      const ref = app.model.args.contrastFactor;
+      const ref = app.model.data.contrastFactor;
       if (!ref) return undefined;
 
       const col = barplotPCols.find((c) => {
@@ -73,9 +72,9 @@ const defaultOptions = computed((): PredefinedGraphOption<"discrete">[] | undefi
 <template>
   <PlBlockPage>
     <GraphMaker
-      v-model="app.model.ui.graphStateBarplot"
+      v-model="app.model.data.graphStateBarplot"
       chartType="discrete"
-      :data-state-key="app.model.args.contrastFactor?.name"
+      :data-state-key="app.model.data.contrastFactor?.name"
       :p-frame="app.model.outputs.boxplotPf"
       :default-options="defaultOptions"
     />

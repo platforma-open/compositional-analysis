@@ -1,76 +1,62 @@
-import type { GraphMakerState } from "@milaboratories/graph-maker";
+import { kind } from "@platforma-open/milaboratories.compositional-analysis.kind";
 import type {
   InferOutputsType,
   PColumnIdAndSpec,
   PFrameHandle,
-  PlDataTableStateV2,
-  PlRef,
+  TreeNodeAccessor,
 } from "@platforma-sdk/model";
 import {
-  BlockModel,
+  BlockModelV3,
   createPlDataTableSheet,
-  createPlDataTableStateV2,
   createPlDataTableV2,
   getUniquePartitionKeys,
   isPColumn,
   isPColumnSpec,
 } from "@platforma-sdk/model";
+import { blockDataModel } from "./dataModel";
+import type { BlockArgs } from "./types";
 
-export type UiState = {
-  title?: string;
-  graphStateStackedBar: GraphMakerState;
-  graphStateBarplot: GraphMakerState;
-  tableState: PlDataTableStateV2;
-};
+export { blockDataModel } from "./dataModel";
+export type { BlockArgs, BlockData } from "./types";
 
-export type BlockArgs = {
-  covariateRefs: PlRef[];
-  clusterAnnotationRef?: PlRef;
-  contrastFactor?: PlRef;
-  baseline?: string;
-  title?: string;
-};
+export const platforma = BlockModelV3.create({ dataModel: blockDataModel, kind })
 
-export const model = BlockModel.create()
+  // The run gate. Throwing shows the reason in the UI. Replaces V1's
+  // `.argsValid`. The projection strips the title and the view state and
+  // returns the same keys V1 stored as args.
+  .args<BlockArgs>((data): BlockArgs => {
+    const {
+      title: _title,
+      graphStateStackedBar: _graphStateStackedBar,
+      graphStateBarplot: _graphStateBarplot,
+      tableState: _tableState,
+      ...args
+    } = data;
 
-  .withArgs<BlockArgs>({
-    covariateRefs: [],
+    if (args.clusterAnnotationRef === undefined) {
+      throw new Error("Cell annotation is required");
+    }
+    if (args.covariateRefs.length === 0) {
+      throw new Error("At least one covariate is required");
+    }
+    if (args.contrastFactor === undefined) {
+      throw new Error("Contrast factor is required");
+    }
+    if (args.baseline === undefined || args.baseline.trim() === "") {
+      throw new Error("Baseline condition is required");
+    }
+
+    return args;
   })
 
-  .argsValid((ctx) => {
-    // Check if all required fields are provided
-    if (!ctx.args.clusterAnnotationRef) {
-      return false;
-    }
-
-    if (!ctx.args.covariateRefs || ctx.args.covariateRefs.length === 0) {
-      return false;
-    }
-
-    if (!ctx.args.contrastFactor) {
-      return false;
-    }
-
-    if (!ctx.args.baseline || ctx.args.baseline.trim() === "") {
-      return false;
-    }
-
-    return true;
-  })
-
-  .withUiState<UiState>({
-    graphStateStackedBar: {
-      title: "Cell Group Composition",
-      template: "stackedBar",
-      currentTab: null,
-    },
-    graphStateBarplot: {
-      title: "Cell Group Abundance",
-      template: "bar",
-      currentTab: null,
-    },
-    tableState: createPlDataTableStateV2(),
-  })
+  // Inverse of the kind's init-params contract. `title` is left out: the UI
+  // derives it from the cell annotation label.
+  .templateParams((data) => ({
+    clusterAnnotationRef: data.clusterAnnotationRef,
+    covariateRefs: data.covariateRefs,
+    contrastFactor: data.contrastFactor,
+    baseline: data.baseline,
+  }))
 
   .output("metadataOptions", (ctx) =>
     ctx.resultPool.getOptions((spec) => isPColumnSpec(spec) && spec.name === "pl7.app/metadata"),
@@ -86,9 +72,11 @@ export const model = BlockModel.create()
   )
 
   .output("baselineOptions", (ctx) => {
-    if (!ctx.args.contrastFactor) return undefined;
+    // `ctx.data`, not `ctx.args`: the args lambda throws until a baseline is
+    // chosen, and these options are what the user chooses it from.
+    if (!ctx.data.contrastFactor) return undefined;
 
-    const data = ctx.resultPool.getDataByRef(ctx.args.contrastFactor)?.data;
+    const data = ctx.resultPool.getDataByRef(ctx.data.contrastFactor)?.data;
 
     // @TODO need a convenient method in API
     const values = data?.getDataAsJson<Record<string, string>>()?.["data"];
@@ -105,41 +93,41 @@ export const model = BlockModel.create()
     return undefined;
   })
 
-  .output("resultsPt", (ctx) => {
-    // Get the original PFrame from workflow
+  // The table and its sheets are two outputs: PlAgDataTableV2 (via
+  // usePlDataTableSettingsV2) takes the table status-wrapped and the sheets
+  // as a plain value.
+  .outputWithStatus("resultsPt", (ctx) => {
     const pCols = ctx.outputs?.resolve("resultsPf")?.getPColumns();
     if (pCols === undefined) {
       return undefined;
     }
 
-    // Filter out q-value column if analysis method is foldChange (insufficient replicates)
     const analysisMethod = ctx.outputs?.resolve("analysisMethod")?.getDataAsJson();
-
-    // Filter the input columns before passing to createPlDataTableV2
-    const filteredPCols =
-      analysisMethod === "foldChange"
-        ? pCols.filter(
-            (col) =>
-              col.spec.name !== "pl7.app/rna-seq/qvalue" &&
-              col.spec.name !== "pl7.app/rna-seq/relativelog2foldchange",
-          )
-        : pCols;
-
+    const filteredPCols = visibleResultColumns(pCols, analysisMethod);
     if (filteredPCols.length === 0) return undefined;
 
-    const anchor = filteredPCols[0];
+    return createPlDataTableV2(ctx, filteredPCols, ctx.data.tableState);
+  })
+
+  .output("resultsSheets", (ctx) => {
+    const pCols = ctx.outputs?.resolve("resultsPf")?.getPColumns();
+    if (pCols === undefined) {
+      return undefined;
+    }
+
+    const analysisMethod = ctx.outputs?.resolve("analysisMethod")?.getDataAsJson();
+    const anchor = visibleResultColumns(pCols, analysisMethod)[0];
     if (!anchor) return undefined;
 
     const r = getUniquePartitionKeys(anchor.data);
     if (!r) return undefined;
 
-    return {
-      table: createPlDataTableV2(ctx, filteredPCols, ctx.uiState?.tableState),
-      sheets: r.map((values, i) => createPlDataTableSheet(ctx, anchor.spec.axesSpec[i], values)),
-    };
+    return r.map((values, i) => createPlDataTableSheet(ctx, anchor.spec.axesSpec[i], values));
   })
 
-  .output("boxplotPf", (ctx): PFrameHandle | undefined => {
+  // `withStatus` on the two plot frames: GraphMaker's `p-frame` prop takes the
+  // status-wrapped output.
+  .outputWithStatus("boxplotPf", (ctx): PFrameHandle | undefined => {
     const pCols = ctx.outputs?.resolve("boxplotPf")?.getPColumns();
     if (pCols === undefined) {
       return undefined;
@@ -149,7 +137,7 @@ export const model = BlockModel.create()
     const metadataCols = ctx.resultPool
       .getData()
       .entries.map((c) => c.obj)
-      .filter(isPColumn)
+      .filter(isPColumn<TreeNodeAccessor>)
       .filter(
         (col) =>
           col.spec.name === "pl7.app/metadata" &&
@@ -162,7 +150,7 @@ export const model = BlockModel.create()
     return ctx.createPFrame(allCols);
   })
 
-  .output("stackedBarPf", (ctx): PFrameHandle | undefined => {
+  .outputWithStatus("stackedBarPf", (ctx): PFrameHandle | undefined => {
     const pCols = ctx.outputs?.resolve("stackedBarPf")?.getPColumns();
     if (pCols === undefined) {
       return undefined;
@@ -172,7 +160,7 @@ export const model = BlockModel.create()
     const metadataCols = ctx.resultPool
       .getData()
       .entries.map((c) => c.obj)
-      .filter(isPColumn)
+      .filter(isPColumn<TreeNodeAccessor>)
       .filter(
         (col) =>
           col.spec.name === "pl7.app/metadata" &&
@@ -196,7 +184,7 @@ export const model = BlockModel.create()
     const metadataCols = ctx.resultPool
       .getData()
       .entries.map((c) => c.obj)
-      .filter(isPColumn)
+      .filter(isPColumn<TreeNodeAccessor>)
       .filter(
         (col) =>
           col.spec.name === "pl7.app/metadata" &&
@@ -224,7 +212,7 @@ export const model = BlockModel.create()
     const metadataCols = ctx.resultPool
       .getData()
       .entries.map((c) => c.obj)
-      .filter(isPColumn)
+      .filter(isPColumn<TreeNodeAccessor>)
       .filter(
         (col) =>
           col.spec.name === "pl7.app/metadata" &&
@@ -250,8 +238,26 @@ export const model = BlockModel.create()
     { type: "link", href: "/stacked-bar", label: "Cell Group Composition" },
   ])
 
-  .title((ctx) => ctx.uiState.title ?? "Compositional Analysis")
+  .title((ctx) => ctx.data.title ?? "Compositional Analysis")
 
-  .done(2);
+  .done();
 
-export type BlockOutputs = InferOutputsType<typeof model>;
+export type BlockOutputs = InferOutputsType<typeof platforma>;
+
+// Internals
+
+/**
+ * With too few replicates the analysis falls back to plain fold changes, so the
+ * scCODA columns are left out of the table.
+ */
+function visibleResultColumns<T extends { spec: { name: string } }>(
+  pCols: T[],
+  analysisMethod: unknown,
+): T[] {
+  if (analysisMethod !== "foldChange") return pCols;
+  return pCols.filter(
+    (col) =>
+      col.spec.name !== "pl7.app/rna-seq/qvalue" &&
+      col.spec.name !== "pl7.app/rna-seq/relativelog2foldchange",
+  );
+}
