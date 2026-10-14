@@ -15,3 +15,4 @@ software/*.tgz
 .vscode/settings.json
 pkg-*.tgz
 *.tsbuildinfo
+test-dry-run.json
