@@ -1,5 +1,14 @@
 # @platforma-open/milaboratories.compositional-analysis.workflow
 
+## 1.3.2
+
+### Patch Changes
+
+- a782cbf: Release every package through npm trusted publishing (OIDC) so each package's trusted publisher is used before it expires.
+- Updated dependencies [a782cbf]
+  - @platforma-open/milaboratories.compositional-analysis.replicates@1.1.4
+  - @platforma-open/milaboratories.compositional-analysis.sccoda@1.3.3
+
 ## 1.3.1
 
 ### Patch Changes

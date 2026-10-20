@@ -1,5 +1,11 @@
 # @platforma-open/milaboratories.compositional-analysis.replicates
 
+## 1.1.4
+
+### Patch Changes
+
+- a782cbf: Release every package through npm trusted publishing (OIDC) so each package's trusted publisher is used before it expires.
+
 ## 1.1.3
 
 ### Patch Changes
